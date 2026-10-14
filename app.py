@@ -88,6 +88,25 @@ CREATE TABLE IF NOT EXISTS allocation_logs(
   to_bus TEXT,
   reason TEXT,
   created_ts REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS bus_change_requests(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  student_id INTEGER NOT NULL,
+  student_roll TEXT NOT NULL,
+  student_name TEXT NOT NULL,
+  current_bus_id INTEGER,
+  current_bus_reg TEXT,
+  target_bus_id INTEGER NOT NULL,
+  target_bus_reg TEXT NOT NULL,
+  target_stop_id INTEGER NOT NULL,
+  target_stop_name TEXT NOT NULL,
+  target_route_id INTEGER,
+  target_route_code TEXT,
+  request_date TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  admin_notes TEXT,
+  created_ts REAL NOT NULL,
+  resolved_ts REAL);
 """
 ALERT_KINDS = ["delay", "cancelled", "diversion", "info"]
 DAY_NAMES = {1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 7: "Sun"}
@@ -612,6 +631,73 @@ def format_mins_duration(mins):
     return f"{h}h {m}m" if m else f"{h}h"
 
 
+def get_evening_buses_for_destination(dest_stop_id):
+    """
+    Finds all evening buses departing from College Campus at 04:30 PM that stop at dest_stop_id.
+    Calculates drop-off ETA, seat occupancy, and available capacity.
+    """
+    c = db()
+    try:
+        dest_stop_id = int(dest_stop_id)
+    except (ValueError, TypeError):
+        return []
+
+    dest = c.execute("SELECT id, name FROM stops WHERE id=?", (dest_stop_id,)).fetchone()
+    if not dest or "College" in dest["name"]:
+        return []
+
+    rows = c.execute("""
+        SELECT DISTINCT b.id AS bus_id, b.reg_no AS bus_reg, b.capacity,
+               r.id AS route_id, r.code AS route_code, r.name AS route_name, r.color AS route_color,
+               d.name AS driver_name, d.phone AS driver_phone,
+               (SELECT COUNT(*) FROM students s WHERE s.bus_id = b.id) AS student_count
+        FROM route_stops rs
+        JOIN routes r_ret ON r_ret.id = rs.route_id
+        JOIN routes r ON (r.code || '-R' = r_ret.code OR r.code = r_ret.code)
+        JOIN buses b ON b.route_id = r.id
+        LEFT JOIN drivers d ON d.bus_id = b.id
+        WHERE rs.stop_id = ?
+        ORDER BY b.id
+    """, (dest_stop_id,)).fetchall()
+
+    today_str = local_now().strftime("%Y-%m-%d")
+    evening_start_min = 990  # 04:30 PM
+    results = []
+
+    for r in rows:
+        ret_row = c.execute(
+            "SELECT rs.offset_min FROM route_stops rs JOIN routes r ON r.id = rs.route_id "
+            "WHERE rs.stop_id = ? AND r.code = ?",
+            (dest_stop_id, r["route_code"] + "-R")
+        ).fetchone()
+        travel_min = ret_row["offset_min"] if ret_row else 45
+        arr_min = evening_start_min + travel_min
+        cap = r["capacity"] or 50
+        occupied = r["student_count"] or 0
+        available = max(0, cap - occupied)
+
+        results.append({
+            "bus_id": r["bus_id"],
+            "bus_reg": r["bus_reg"],
+            "capacity": cap,
+            "occupied": occupied,
+            "available_seats": available,
+            "is_full": available <= 0,
+            "route_id": r["route_id"],
+            "route_code": r["route_code"],
+            "route_name": r["route_name"],
+            "route_color": r["route_color"] or "#2563eb",
+            "driver_name": r["driver_name"] or "Staff Driver",
+            "driver_phone": r["driver_phone"] or "+91 98480 11001",
+            "evening_depart_time": "04:30 PM",
+            "travel_mins": travel_min,
+            "evening_drop_time": clock(arr_min),
+            "dest_stop_id": dest["id"],
+            "dest_stop_name": dest["name"],
+        })
+    return results
+
+
 # ------------------------------- student portal -----------------------------
 @app.route("/student")
 @student_required
@@ -820,6 +906,30 @@ def student_home():
         ).fetchall()
         alt_buses = [dict(x) for x in alt_rows]
 
+    # Destination stops for "Evening Travel to Another Destination" feature (excluding campus gate)
+    all_dest_stops = db().execute(
+        "SELECT id, name, landmark FROM stops WHERE name != 'College Main Gate' ORDER BY name"
+    ).fetchall()
+
+    # Active or resolved bus change request for this student today
+    today_change_request = db().execute(
+        "SELECT * FROM bus_change_requests WHERE student_id = ? AND request_date = ? ORDER BY id DESC LIMIT 1",
+        (stu["id"], today_str)
+    ).fetchone()
+
+    # Evening destination search query (if selected)
+    evening_search_stop_id = request.args.get("dest_stop_id", "").strip()
+    evening_search_stop = None
+    evening_buses_results = []
+    if evening_search_stop_id:
+        try:
+            dest_id_int = int(evening_search_stop_id)
+            evening_search_stop = db().execute("SELECT * FROM stops WHERE id = ?", (dest_id_int,)).fetchone()
+            if evening_search_stop:
+                evening_buses_results = get_evening_buses_for_destination(dest_id_int)
+        except (ValueError, TypeError):
+            pass
+
     return render_template("student_home.html", stu=stu, stops=stops,
                            live=live, stop_status=stop_status, eta_min=eta_min,
                            is_not_travelling=is_not_travelling,
@@ -834,7 +944,122 @@ def student_home():
                            morning_pickup_time=morning_pickup_time,
                            morning_arrive_time=morning_arrive_time,
                            evening_depart_time=evening_depart_time,
-                           evening_drop_time=evening_drop_time)
+                           evening_drop_time=evening_drop_time,
+                           all_dest_stops=all_dest_stops,
+                           today_change_request=today_change_request,
+                           evening_search_stop_id=evening_search_stop_id,
+                           evening_search_stop=evening_search_stop,
+                           evening_buses_results=evening_buses_results)
+
+
+@app.route("/api/student/find-evening-buses")
+@student_required
+def api_student_find_evening_buses():
+    dest_id = request.args.get("dest_stop_id")
+    if not dest_id:
+        return jsonify(buses=[], error="Destination stop required")
+    buses = get_evening_buses_for_destination(dest_id)
+    return jsonify(buses=buses)
+
+
+@app.route("/api/student/request-bus-change", methods=["POST"])
+@student_required
+def api_student_request_bus_change():
+    stu = get_current_student()
+    if not stu:
+        return jsonify(ok=False, message="Student session not found"), 401
+
+    data = request.get_json(silent=True) or request.form
+    target_bus_id = data.get("target_bus_id")
+    target_stop_id = data.get("target_stop_id")
+    reason = data.get("reason", "").strip()
+
+    if not target_bus_id or not target_stop_id or not reason:
+        msg = "Please select a destination stop, pick a bus, and enter your reason for reassignment."
+        if request.is_json:
+            return jsonify(ok=False, message=msg), 400
+        flash(msg, "warn")
+        return redirect(url_for("student_home"))
+
+    c = db()
+    target_bus = c.execute(
+        "SELECT b.*, r.id AS r_id, r.code AS r_code FROM buses b "
+        "LEFT JOIN routes r ON r.id = b.route_id WHERE b.id = ?",
+        (target_bus_id,)
+    ).fetchone()
+    target_stop = c.execute("SELECT * FROM stops WHERE id = ?", (target_stop_id,)).fetchone()
+
+    if not target_bus or not target_stop:
+        msg = "Selected bus or stop not found."
+        if request.is_json:
+            return jsonify(ok=False, message=msg), 404
+        flash(msg, "warn")
+        return redirect(url_for("student_home"))
+
+    today_str = local_now().strftime("%Y-%m-%d")
+    now_ts = time.time()
+
+    # Check if student already submitted a request for today
+    existing = c.execute(
+        "SELECT id, status FROM bus_change_requests WHERE student_id = ? AND request_date = ?",
+        (stu["id"], today_str)
+    ).fetchone()
+
+    if existing:
+        c.execute("""
+            UPDATE bus_change_requests
+            SET target_bus_id=?, target_bus_reg=?, target_stop_id=?, target_stop_name=?,
+                target_route_id=?, target_route_code=?, reason=?, status='pending',
+                admin_notes=NULL, created_ts=?
+            WHERE id=?
+        """, (target_bus["id"], target_bus["reg_no"], target_stop["id"], target_stop["name"],
+              target_bus["r_id"], target_bus["r_code"], reason, now_ts, existing["id"]))
+    else:
+        c.execute("""
+            INSERT INTO bus_change_requests(
+                student_id, student_roll, student_name,
+                current_bus_id, current_bus_reg,
+                target_bus_id, target_bus_reg,
+                target_stop_id, target_stop_name,
+                target_route_id, target_route_code,
+                request_date, reason, status, created_ts
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+        """, (stu["id"], stu["roll_no"], stu["name"],
+              stu["bus_id"], stu["bus_reg"],
+              target_bus["id"], target_bus["reg_no"],
+              target_stop["id"], target_stop["name"],
+              target_bus["r_id"], target_bus["r_code"],
+              today_str, reason, now_ts))
+    c.commit()
+
+    # Notify via internal alert for Transport Admin
+    c.execute("""
+        INSERT INTO alerts(route_id, kind, message, created_ts, expires_ts, active)
+        VALUES (?, 'info', ?, ?, ?, 1)
+    """, (target_bus["r_id"],
+          f"📋 [BUS CHANGE REQUEST] Student {stu['name']} ({stu['roll_no']}) requested 1-day evening bus change to {target_bus['reg_no']} -> {target_stop['name']}. Reason: {reason}",
+          now_ts, now_ts + 86400))
+    c.commit()
+
+    success_msg = f"Request to travel on Bus {target_bus['reg_no']} to {target_stop['name']} submitted! Awaiting Admin approval before boarding."
+    if request.is_json:
+        return jsonify(ok=True, message=success_msg)
+    flash(success_msg, "ok")
+    return redirect(url_for("student_home"))
+
+
+@app.route("/api/student/cancel-bus-change", methods=["POST"])
+@student_required
+def api_student_cancel_bus_change():
+    stu = get_current_student()
+    today_str = local_now().strftime("%Y-%m-%d")
+    db().execute(
+        "DELETE FROM bus_change_requests WHERE student_id = ? AND request_date = ? AND status = 'pending'",
+        (stu["id"], today_str)
+    )
+    db().commit()
+    flash("Your pending bus change request has been withdrawn.", "ok")
+    return redirect(url_for("student_home"))
 
 
 @app.route("/api/student/toggle-travel", methods=["POST"])
@@ -1237,10 +1462,75 @@ def admin_allocations():
     # All stops for reassign dropdown
     all_stops = c.execute("SELECT id, name FROM stops ORDER BY name").fetchall()
 
+    # Bus change requests for today
+    today_str = local_now().strftime("%Y-%m-%d")
+    bus_requests = c.execute(
+        "SELECT r.*, "
+        "(SELECT COUNT(*) FROM students s WHERE s.bus_id = r.target_bus_id) AS target_bus_occupancy "
+        "FROM bus_change_requests r "
+        "WHERE r.request_date = ? "
+        "ORDER BY CASE WHEN r.status='pending' THEN 0 WHEN r.status='approved' THEN 1 ELSE 2 END, r.id DESC",
+        (today_str,)
+    ).fetchall()
+    pending_bus_requests_count = sum(1 for r in bus_requests if r["status"] == "pending")
+
     return render_template("admin_allocations.html", buses=buses, students=students,
                            bus_filter=bus_filter, search_q=search_q,
                            total_students=total_students, unallocated_count=unallocated_count,
-                           logs=logs, all_stops=all_stops, max_cap=MAX_BUS_CAPACITY)
+                           logs=logs, all_stops=all_stops, max_cap=MAX_BUS_CAPACITY,
+                           bus_requests=bus_requests,
+                           pending_bus_requests_count=pending_bus_requests_count)
+
+
+@app.route("/admin/request-action", methods=["POST"])
+@admin_required
+def admin_request_action():
+    req_id = request.form.get("request_id")
+    action = request.form.get("action")  # 'approve' or 'reject'
+    admin_notes = request.form.get("admin_notes", "").strip()
+
+    c = db()
+    req_row = c.execute("SELECT * FROM bus_change_requests WHERE id = ?", (req_id,)).fetchone()
+    if not req_row:
+        flash("Request record not found.", "warn")
+        return redirect(url_for("admin_allocations"))
+
+    now_ts = time.time()
+    if action == "approve":
+        count = c.execute("SELECT COUNT(*) FROM students WHERE bus_id = ?", (req_row["target_bus_id"],)).fetchone()[0]
+        
+        c.execute("""
+            UPDATE bus_change_requests
+            SET status = 'approved', admin_notes = ?, resolved_ts = ?
+            WHERE id = ?
+        """, (admin_notes or "Approved by Transport Admin", now_ts, req_id))
+        
+        c.execute("""
+            INSERT INTO allocation_logs(student_id, student_name, from_bus, to_bus, reason, created_ts)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (req_row["student_id"], req_row["student_name"],
+              req_row["current_bus_reg"] or "Original Bus",
+              f"1-Day Temporary: {req_row['target_bus_reg']} ({req_row['target_stop_name']})",
+              f"Approved Reassignment: {req_row['reason']}", now_ts))
+        
+        c.execute("""
+            INSERT INTO alerts(route_id, kind, message, created_ts, expires_ts, active)
+            VALUES (?, 'info', ?, ?, ?, 1)
+        """, (req_row["target_route_id"],
+              f"✅ [REASSIGNMENT APPROVED] Student {req_row['student_name']} ({req_row['student_roll']}) authorized to board {req_row['target_bus_reg']} for today's 4:30 PM evening drop-off at {req_row['target_stop_name']}.",
+              now_ts, now_ts + 43200))
+        c.commit()
+        flash(f"Approved 1-day bus reassignment for {req_row['student_name']} on Bus {req_row['target_bus_reg']} (Seats: {count}/{MAX_BUS_CAPACITY}).", "ok")
+    elif action == "reject":
+        c.execute("""
+            UPDATE bus_change_requests
+            SET status = 'rejected', admin_notes = ?, resolved_ts = ?
+            WHERE id = ?
+        """, (admin_notes or "Declined due to bus capacity constraints", now_ts, req_id))
+        c.commit()
+        flash(f"Reassignment request declined for {req_row['student_name']}.", "warn")
+
+    return redirect(url_for("admin_allocations"))
 
 
 @app.route("/admin/allocations/reassign", methods=["POST"])

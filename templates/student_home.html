@@ -329,6 +329,285 @@
     </div>
   </div>
 
+  <!-- ==================== 2B. EVENING TRAVEL TO ANOTHER DESTINATION (1-DAY BUS REASSIGNMENT) ==================== -->
+  <div class="glass-panel rounded-2xl p-5 border border-amber-500/30 bg-gradient-to-br from-amber-950/20 via-slate-900/60 to-slate-900/90 shadow-2xl space-y-5">
+    
+    <!-- Section Header -->
+    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-white/10">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-amber-400/20 text-amber-300 border border-amber-400/40 flex items-center justify-center text-xl shrink-0">
+          🌇
+        </div>
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h3 class="text-base sm:text-lg font-extrabold font-display text-white">
+              Travel to Another Destination from College
+            </h3>
+            <span class="text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
+              1-Day Bus Reassignment
+            </span>
+          </div>
+          <p class="text-xs text-slate-300 mt-0.5">
+            Heading to a project meetup, library, or another suburb after classes? Choose your destination to find evening buses departing campus at 4:30 PM.
+          </p>
+        </div>
+      </div>
+
+      <!-- Campus Commute Policy Rule Badge -->
+      <div class="text-[11px] bg-slate-900/90 border border-amber-500/20 rounded-xl p-3 space-y-1 sm:max-w-xs shrink-0 shadow-inner">
+        <div class="font-bold text-amber-400 flex items-center gap-1.5">
+          <span>⚠️</span> Important Transit Policy:
+        </div>
+        <div class="text-slate-300 leading-snug">
+          • <strong>Morning:</strong> Board your designated bus only to arrive at College.<br>
+          • <strong>Evening (4:30 PM):</strong> Bus changes allowed with <strong>Admin Approval</strong>.
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Reassignment Request Status Card (If Any) -->
+    {% if today_change_request %}
+    <div class="p-4 rounded-2xl border transition-all {% if today_change_request.status == 'approved' %}bg-emerald-950/40 border-emerald-500/50 glow-emerald{% elif today_change_request.status == 'pending' %}bg-amber-950/30 border-amber-500/50 glow-amber{% else %}bg-rose-950/30 border-rose-500/40{% endif %} space-y-3">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5">
+          {% if today_change_request.status == 'approved' %}
+            <span class="text-2xl">✅</span>
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+                <span>Request Approved</span> • <span>Boarding Authorized</span>
+              </span>
+              <div class="text-sm font-extrabold text-white mt-0.5">
+                Bus {{ today_change_request.target_bus_reg }} (Route {{ today_change_request.target_route_code }}) → {{ today_change_request.target_stop_name }}
+              </div>
+            </div>
+          {% elif today_change_request.status == 'pending' %}
+            <span class="text-2xl animate-pulse">⏳</span>
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1">
+                <span>Request Pending Admin Approval</span>
+              </span>
+              <div class="text-sm font-extrabold text-white mt-0.5">
+                Requested Bus: {{ today_change_request.target_bus_reg }} ({{ today_change_request.target_route_code }}) → {{ today_change_request.target_stop_name }}
+              </div>
+            </div>
+          {% else %}
+            <span class="text-2xl">❌</span>
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-rose-400">Request Declined by Administrator</span>
+              <div class="text-sm font-extrabold text-white mt-0.5">
+                Could not reassign to Bus {{ today_change_request.target_bus_reg }}
+              </div>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="flex items-center gap-2">
+          {% if today_change_request.status == 'approved' %}
+            <button 
+              type="button" 
+              onclick="openModal('pass-modal')" 
+              class="text-xs font-bold px-3.5 py-2 rounded-xl bg-emerald-500/30 text-emerald-200 border border-emerald-400 hover:bg-emerald-500/40 btn-press flex items-center gap-1.5 shadow-sm"
+            >
+              <span>🪪</span>
+              <span>View Authorized Digital Pass</span>
+            </button>
+          {% elif today_change_request.status == 'pending' %}
+            <form method="post" action="/api/student/cancel-bus-change">
+              <button 
+                type="submit" 
+                class="text-xs font-bold px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-slate-300 border border-white/20 btn-press"
+                onclick="return confirm('Withdraw your pending bus reassignment request?')"
+              >
+                Withdraw Request
+              </button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-white/10 text-xs">
+        <div>
+          <span class="text-slate-400 font-medium">Submitted Reason:</span>
+          <div class="text-slate-200 font-medium italic mt-0.5">"{{ today_change_request.reason }}"</div>
+        </div>
+        <div>
+          <span class="text-slate-400 font-medium">Evening Departure Time:</span>
+          <div class="text-amber-300 font-mono font-bold mt-0.5">Today at 04:30 PM (Campus Gate)</div>
+        </div>
+        <div>
+          <span class="text-slate-400 font-medium">Admin Authorization Status:</span>
+          <div class="{% if today_change_request.status == 'approved' %}text-emerald-300 font-bold{% elif today_change_request.status == 'rejected' %}text-rose-300 font-semibold{% else %}text-amber-300 font-semibold{% endif %} mt-0.5">
+            {{ today_change_request.admin_notes or ('Under review by Campus Transport Desk' if today_change_request.status == 'pending' else 'No remarks') }}
+          </div>
+        </div>
+      </div>
+      {% if today_change_request.status == 'pending' %}
+      <div class="text-[11px] text-amber-300/90 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 flex items-center gap-2">
+        <span>ℹ️</span>
+        <span>Please wait for the Transport Administrator to approve your request. <strong>Only upon Admin approval can you board Bus {{ today_change_request.target_bus_reg }}.</strong></span>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Destination Selector (Origin is Locked to College Campus) -->
+    <div class="glass-card rounded-2xl p-4 sm:p-5 border border-white/10 space-y-4">
+      <div class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+        <span>Find Evening Buses Leaving College Campus</span>
+        <span class="text-[10px] text-amber-400 font-normal">Departures start at 04:30 PM</span>
+      </div>
+
+      <form method="get" action="/student" id="dest-search-form" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          
+          <!-- Locked Starting Stop -->
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1 flex items-center justify-between">
+              <span>Starting Location (Fixed Origin)</span>
+              <span class="text-[10px] text-emerald-400 font-mono">🔒 LOCKED</span>
+            </label>
+            <div class="w-full rounded-xl bg-slate-900/90 border border-white/15 px-3.5 py-2.5 text-xs sm:text-sm text-slate-200 flex items-center justify-between cursor-not-allowed">
+              <span class="flex items-center gap-2 font-semibold">
+                <span class="text-amber-400">🏫</span>
+                <span>College Campus (Main Bay)</span>
+              </span>
+              <span class="text-[10px] bg-amber-500/20 text-amber-300 font-mono px-2 py-0.5 rounded">Departs 04:30 PM</span>
+            </div>
+            <p class="text-[10px] text-slate-400 mt-1">Evening return trips depart from College Campus to all city routes.</p>
+          </div>
+
+          <!-- Destination Selector -->
+          <div>
+            <label for="dest-stop-select" class="block text-xs font-bold text-slate-300 mb-1 flex items-center justify-between">
+              <span>Where do you want to go today?</span>
+              <span class="text-[10px] text-amber-400">Select Destination Stop</span>
+            </label>
+            <div class="flex gap-2">
+              <select 
+                id="dest-stop-select" 
+                name="dest_stop_id" 
+                class="glass-input flex-1 rounded-xl px-3 py-2 text-xs sm:text-sm text-white bg-slate-900 border-white/20 focus:border-amber-400 focus:outline-none"
+                onchange="handleDestChange(this.value)"
+              >
+                <option value="">-- Choose destination stop --</option>
+                {% for st in all_dest_stops %}
+                <option value="{{ st.id }}" {% if evening_search_stop_id == st.id|string %}selected{% endif %}>
+                  {{ st.name }} {% if st.landmark %}({{ st.landmark }}){% endif %}
+                </option>
+                {% endfor %}
+              </select>
+              <button 
+                type="submit" 
+                class="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs btn-press shrink-0 flex items-center gap-1.5 shadow-md"
+              >
+                <span>🔍</span>
+                <span>Find Buses</span>
+              </button>
+            </div>
+            <p class="text-[10px] text-slate-400 mt-1">Select any stop across Hyderabad city connected by campus routes.</p>
+          </div>
+
+        </div>
+      </form>
+
+      <!-- Dynamic Loading Indicator -->
+      <div id="dest-bus-loading" class="hidden py-4 text-center text-xs text-amber-400 flex items-center justify-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+        <span>Scanning evening bus routes to destination...</span>
+      </div>
+
+      <!-- Bus Search Results Display -->
+      <div id="dest-buses-container" class="space-y-3 pt-2">
+        {% if evening_search_stop %}
+          <div class="flex items-center justify-between pb-1 border-b border-white/10">
+            <div class="text-xs font-bold text-white flex items-center gap-1.5">
+              <span>🚏</span>
+              <span>Available Evening Buses to <strong class="text-amber-400 font-display">{{ evening_search_stop.name }}</strong>:</span>
+            </div>
+            <span class="text-[11px] text-slate-400 font-mono">{{ evening_buses_results|length }} bus(es) found</span>
+          </div>
+
+          {% if evening_buses_results %}
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {% for b in evening_buses_results %}
+            <div class="glass-card rounded-xl p-4 border border-white/15 space-y-3 relative overflow-hidden group hover:border-amber-400/50 transition-all">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded font-display font-bold text-xs text-white" style="background: {{ b.route_color }};">
+                      {{ b.route_code }}
+                    </span>
+                    <span class="text-sm sm:text-base font-extrabold text-white font-mono">
+                      {{ b.bus_reg }}
+                    </span>
+                  </div>
+                  <div class="text-xs text-slate-300 font-medium mt-1">
+                    {{ b.route_name }}
+                  </div>
+                </div>
+
+                <!-- Seat Capacity Badge -->
+                <div class="text-right shrink-0">
+                  <span class="text-xs font-bold px-2 py-0.5 rounded-md {% if b.is_full %}bg-rose-500/20 text-rose-300 border border-rose-500/30{% elif b.available_seats <= 3 %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% else %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% endif %}">
+                    {% if b.is_full %}Full (50/50){% else %}{{ b.available_seats }} seats free{% endif %}
+                  </span>
+                  <div class="text-[10px] text-slate-400 font-mono mt-0.5">{{ b.occupied }}/{{ b.capacity }} occupied</div>
+                </div>
+              </div>
+
+              <!-- Journey Timings Row -->
+              <div class="grid grid-cols-2 gap-2 text-xs bg-white/5 p-2.5 rounded-xl border border-white/5">
+                <div>
+                  <div class="text-[10px] uppercase font-bold text-slate-400">Campus Departs</div>
+                  <div class="text-xs font-bold text-amber-400 font-mono">{{ b.evening_depart_time }}</div>
+                </div>
+                <div>
+                  <div class="text-[10px] uppercase font-bold text-slate-400">Drop-off ETA</div>
+                  <div class="text-xs font-bold text-emerald-400 font-mono">{{ b.evening_drop_time }} (~{{ b.travel_mins }}m)</div>
+                </div>
+              </div>
+
+              <!-- Driver & Request Action -->
+              <div class="flex items-center justify-between gap-2 pt-1 border-t border-white/10 text-xs">
+                <div class="text-[11px] text-slate-400 truncate">
+                  👨‍✈️ {{ b.driver_name }} ({{ b.driver_phone }})
+                </div>
+
+                {% if today_change_request and today_change_request.status == 'approved' and today_change_request.target_bus_id == b.bus_id %}
+                  <span class="text-xs px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold flex items-center gap-1">
+                    ✓ Currently Approved
+                  </span>
+                {% elif b.is_full %}
+                  <button type="button" disabled class="text-xs px-3 py-1.5 rounded-xl bg-rose-500/10 text-rose-400/60 border border-rose-500/20 font-bold cursor-not-allowed">
+                    Bus Full (50/50)
+                  </button>
+                {% else %}
+                  <button 
+                    type="button" 
+                    onclick="openChangeRequestModal({{ b.bus_id }}, '{{ b.bus_reg }}', '{{ b.route_code }}', {{ b.dest_stop_id }}, '{{ b.dest_stop_name }}', '{{ b.evening_drop_time }}')"
+                    class="text-xs font-bold px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-md btn-press flex items-center gap-1"
+                  >
+                    <span>Request Bus</span>
+                    <span>→</span>
+                  </button>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="p-4 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-400 text-center space-y-1">
+            <div>No direct evening buses found stopping at {{ evening_search_stop.name }}.</div>
+            <div class="text-[11px] text-slate-500">Try choosing a nearby transit interchange or consult the campus helpdesk.</div>
+          </div>
+          {% endif %}
+        {% endif %}
+      </div>
+
+    </div>
+
+  </div>
+
   <!-- ==================== 3. 1-TAP SOS & HELPDESK SUPPORT CENTER ==================== -->
   <div class="glass-panel rounded-2xl p-5 border border-rose-500/30 bg-gradient-to-br from-rose-950/30 via-slate-900/60 to-slate-900/90 shadow-xl space-y-4">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -752,6 +1031,21 @@
       </div>
     </div>
 
+    <!-- Approved 1-Day Bus Reassignment Pass Stamp (If Authorized) -->
+    {% if today_change_request and today_change_request.status == 'approved' %}
+    <div class="p-3 rounded-2xl bg-gradient-to-r from-emerald-500/25 to-amber-500/20 border-2 border-emerald-400 text-xs space-y-1 shadow-lg">
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-300 flex items-center gap-1">
+          <span>★</span> <span>1-Day Reassignment</span>
+        </span>
+        <span class="text-[9px] px-2 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-extrabold">ADMIN APPROVED</span>
+      </div>
+      <div class="text-sm font-bold text-white">Evening Bus: {{ today_change_request.target_bus_reg }} ({{ today_change_request.target_route_code }})</div>
+      <div class="text-[11px] text-amber-300 font-medium">Evening Drop-off: <strong>{{ today_change_request.target_stop_name }}</strong></div>
+      <div class="text-[10px] text-slate-300 font-mono">Departs College Campus: 04:30 PM • Admin Verified</div>
+    </div>
+    {% endif %}
+
     <!-- Key Card Specs -->
     <div class="grid grid-cols-2 gap-2 text-xs">
       <div class="p-2.5 rounded-xl bg-white/5 border border-white/10">
@@ -802,6 +1096,86 @@
         CLG-NAV-PASS:{{ stu.roll_no }}-BUS{{ stu.bus_id }}-S{{ stu.seat_no or '14' }}
       </div>
     </div>
+  </div>
+</div>
+
+<!-- MODAL 4: REQUEST 1-DAY BUS REASSIGNMENT -->
+<div id="bus-change-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
+  <div class="glass-panel w-full max-w-md rounded-2xl border border-amber-500/50 bg-slate-950 p-6 space-y-5 shadow-2xl relative text-white">
+    <div class="flex items-start justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center justify-center text-2xl">
+          📝
+        </div>
+        <div>
+          <h3 class="text-lg font-extrabold text-white font-display">Bus Reassignment Request</h3>
+          <p class="text-xs text-amber-300">1-Day Evening Travel Authorization</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeModal('bus-change-modal')" class="text-slate-400 hover:text-white text-lg font-bold p-1">✕</button>
+    </div>
+
+    <!-- Request Details Summary Box -->
+    <div class="p-3.5 rounded-xl bg-white/5 border border-white/10 text-xs space-y-1.5">
+      <div class="flex justify-between">
+        <span class="text-slate-400">Target Evening Bus:</span>
+        <strong id="modal-req-bus" class="text-white font-mono"></strong>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-slate-400">Evening Destination:</span>
+        <strong id="modal-req-stop" class="text-amber-400 font-bold"></strong>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-slate-400">Campus Departure:</span>
+        <span class="text-slate-200 font-mono">Today at 04:30 PM (Main Gate)</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-slate-400">Estimated Arrival:</span>
+        <span id="modal-req-arr" class="text-emerald-400 font-mono font-bold"></span>
+      </div>
+    </div>
+
+    <form method="post" action="/api/student/request-bus-change" class="space-y-4">
+      <input type="hidden" id="modal-input-bus-id" name="target_bus_id">
+      <input type="hidden" id="modal-input-stop-id" name="target_stop_id">
+
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+          Reason for Bus Reassignment <span class="text-amber-400">*</span>
+        </label>
+        <textarea 
+          name="reason" 
+          rows="3" 
+          required 
+          placeholder="e.g. Visiting group partner for project work / family visit / staying at relative's house..."
+          class="glass-input w-full rounded-xl p-3 text-xs text-white placeholder-slate-500 border border-white/20 focus:border-amber-400 focus:outline-none"
+        ></textarea>
+        <p class="text-[10px] text-slate-400 mt-1">
+          This reason will be reviewed by the Transport Administrator before approval.
+        </p>
+      </div>
+
+      <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 leading-snug">
+        ⚠️ <strong>Notice:</strong> Submitting this request sends an alert to Admin. <strong>You can only travel on this bus after the Admin approves your request.</strong>
+      </div>
+
+      <div class="flex gap-2.5 pt-2">
+        <button 
+          type="button" 
+          onclick="closeModal('bus-change-modal')" 
+          class="w-1/3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs border border-white/10"
+        >
+          Cancel
+        </button>
+        <button 
+          type="submit" 
+          class="w-2/3 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold text-xs shadow-lg btn-press flex items-center justify-center gap-1.5"
+        >
+          <span>🚀</span>
+          <span>Submit Request to Admin</span>
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -1063,6 +1437,124 @@ function focusStopOnMap(lat, lng, name) {
   if (map) {
     map.flyTo([lat, lng], 16, { animate: true, duration: 0.8 });
     toast(`Centered on ${name}`);
+  }
+}
+
+// ==================== 1-DAY BUS CHANGE REASSIGNMENT ====================
+function openChangeRequestModal(busId, busReg, routeCode, stopId, stopName, arrTime) {
+  document.getElementById('modal-input-bus-id').value = busId;
+  document.getElementById('modal-input-stop-id').value = stopId;
+  document.getElementById('modal-req-bus').textContent = `${busReg} (Route ${routeCode})`;
+  document.getElementById('modal-req-stop').textContent = stopName;
+  document.getElementById('modal-req-arr').textContent = arrTime;
+  openModal('bus-change-modal');
+}
+
+async function handleDestChange(destStopId) {
+  if (!destStopId) {
+    document.getElementById('dest-buses-container').innerHTML = '';
+    return;
+  }
+  const loading = document.getElementById('dest-bus-loading');
+  const container = document.getElementById('dest-buses-container');
+  if (loading) loading.classList.remove('hidden');
+
+  try {
+    const res = await fetch(`/api/student/find-evening-buses?dest_stop_id=${destStopId}`);
+    const data = await res.json();
+    if (loading) loading.classList.add('hidden');
+
+    if (!data.buses || data.buses.length === 0) {
+      container.innerHTML = `
+        <div class="p-4 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-400 text-center space-y-1">
+          <div>No direct evening buses found stopping at this destination.</div>
+          <div class="text-[11px] text-slate-500">Try choosing an adjacent transit hub or contact the transport desk.</div>
+        </div>
+      `;
+      return;
+    }
+
+    const stopName = data.buses[0].dest_stop_name;
+    let html = `
+      <div class="flex items-center justify-between pb-1 border-b border-white/10">
+        <div class="text-xs font-bold text-white flex items-center gap-1.5">
+          <span>🚏</span>
+          <span>Available Evening Buses to <strong class="text-amber-400 font-display">${stopName}</strong>:</span>
+        </div>
+        <span class="text-[11px] text-slate-400 font-mono">${data.buses.length} bus(es) found</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    `;
+
+    data.buses.forEach(b => {
+      const isFull = b.is_full;
+      const capBadgeClass = isFull 
+        ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' 
+        : (b.available_seats <= 3 ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30');
+      const capLabel = isFull ? 'Full (50/50)' : `${b.available_seats} seats free`;
+
+      html += `
+        <div class="glass-card rounded-xl p-4 border border-white/15 space-y-3 relative overflow-hidden group hover:border-amber-400/50 transition-all">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded font-display font-bold text-xs text-white" style="background: ${b.route_color};">
+                  ${b.route_code}
+                </span>
+                <span class="text-sm sm:text-base font-extrabold text-white font-mono">
+                  ${b.bus_reg}
+                </span>
+              </div>
+              <div class="text-xs text-slate-300 font-medium mt-1">
+                ${b.route_name}
+              </div>
+            </div>
+            <div class="text-right shrink-0">
+              <span class="text-xs font-bold px-2 py-0.5 rounded-md border ${capBadgeClass}">
+                ${capLabel}
+              </span>
+              <div class="text-[10px] text-slate-400 font-mono mt-0.5">${b.occupied}/${b.capacity} occupied</div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 text-xs bg-white/5 p-2.5 rounded-xl border border-white/5">
+            <div>
+              <div class="text-[10px] uppercase font-bold text-slate-400">Campus Departs</div>
+              <div class="text-xs font-bold text-amber-400 font-mono">${b.evening_depart_time}</div>
+            </div>
+            <div>
+              <div class="text-[10px] uppercase font-bold text-slate-400">Drop-off ETA</div>
+              <div class="text-xs font-bold text-emerald-400 font-mono">${b.evening_drop_time} (~${b.travel_mins}m)</div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-2 pt-1 border-t border-white/10 text-xs">
+            <div class="text-[11px] text-slate-400 truncate">
+              👨‍✈️ ${b.driver_name} (${b.driver_phone})
+            </div>
+            ${isFull ? `
+              <button type="button" disabled class="text-xs px-3 py-1.5 rounded-xl bg-rose-500/10 text-rose-400/60 border border-rose-500/20 font-bold cursor-not-allowed">
+                Bus Full (50/50)
+              </button>
+            ` : `
+              <button 
+                type="button" 
+                onclick="openChangeRequestModal(${b.bus_id}, '${b.bus_reg}', '${b.route_code}', ${b.dest_stop_id}, '${b.dest_stop_name}', '${b.evening_drop_time}')"
+                class="text-xs font-bold px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-md btn-press flex items-center gap-1"
+              >
+                <span>Request Bus</span>
+                <span>→</span>
+              </button>
+            `}
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+  } catch (err) {
+    if (loading) loading.classList.add('hidden');
+    console.error('Failed to load evening buses:', err);
   }
 }
 </script>

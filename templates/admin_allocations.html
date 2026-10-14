@@ -28,6 +28,12 @@
         ⚠️ {{ unallocated_count }} Unallocated
       </a>
       {% endif %}
+      {% if pending_bus_requests_count > 0 %}
+      <span class="text-xs font-bold px-3 py-1.5 rounded-xl bg-amber-400 text-slate-950 shadow-md flex items-center gap-1.5 animate-pulse">
+        <span>📋</span>
+        <span>{{ pending_bus_requests_count }} Bus Request{{ 's' if pending_bus_requests_count > 1 else '' }} Pending</span>
+      </span>
+      {% endif %}
     </div>
   </div>
 
@@ -71,6 +77,127 @@
       </a>
       {% endfor %}
     </div>
+  </div>
+
+  <!-- 1-Day Bus Reassignment Requests Card -->
+  <div class="glass-panel rounded-2xl p-5 border {% if pending_bus_requests_count > 0 %}border-amber-400/50 shadow-amber-900/20 shadow-2xl bg-gradient-to-br from-amber-950/20 via-slate-900/80 to-slate-950{% else %}border-white/10{% endif %} space-y-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+      <div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-xl">📋</span>
+          <h2 class="text-base font-extrabold font-display text-white">
+            1-Day Student Bus Reassignment Requests (Today)
+          </h2>
+          {% if pending_bus_requests_count > 0 %}
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-amber-400 text-slate-950 animate-pulse">
+            {{ pending_bus_requests_count }} Awaiting Decision
+          </span>
+          {% else %}
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/10 text-slate-400">
+            All Resolved
+          </span>
+          {% endif %}
+        </div>
+        <p class="text-xs text-slate-400 mt-0.5">
+          Review and authorize single-day evening bus changes for students traveling to different locations from College Campus (Departing 4:30 PM).
+        </p>
+      </div>
+    </div>
+
+    {% if bus_requests %}
+    <div class="space-y-3">
+      {% for req in bus_requests %}
+      <div class="p-4 rounded-xl border transition-all {% if req.status == 'pending' %}bg-amber-500/10 border-amber-400/40 glow-amber{% elif req.status == 'approved' %}bg-emerald-500/5 border-emerald-500/30{% else %}bg-rose-500/5 border-rose-500/20 opacity-75{% endif %} flex flex-col md:flex-row md:items-center justify-between gap-4">
+        
+        <!-- Left: Student Details & Route Info -->
+        <div class="space-y-1.5 flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-sm font-extrabold text-white font-display">
+              {{ req.student_name }}
+            </span>
+            <span class="text-xs font-mono text-slate-300 bg-white/10 px-2 py-0.5 rounded font-bold">
+              {{ req.student_roll }}
+            </span>
+            <span class="text-xs text-slate-400">
+              Assigned Bus: <strong class="text-slate-200">{{ req.current_bus_reg or 'Unassigned' }}</strong>
+            </span>
+            <span class="text-xs font-bold px-2.5 py-0.5 rounded-full {% if req.status == 'pending' %}bg-amber-400 text-slate-950{% elif req.status == 'approved' %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% else %}bg-rose-500/20 text-rose-300 border border-rose-500/30{% endif %}">
+              {{ req.status|upper }}
+            </span>
+          </div>
+
+          <div class="text-xs text-slate-300 flex items-center gap-2 flex-wrap">
+            <span class="text-amber-400 font-semibold">Requested Evening Bus:</span>
+            <span class="font-bold text-white font-mono">{{ req.target_bus_reg }} ({{ req.target_route_code }})</span>
+            <span>→ Drop-off Stop:</span>
+            <span class="font-bold text-amber-300">🚏 {{ req.target_stop_name }}</span>
+            <span class="text-[11px] text-slate-400">
+              (Bus Load: <strong class="{% if req.target_bus_occupancy >= max_cap %}text-rose-400{% else %}text-emerald-400{% endif %}">{{ req.target_bus_occupancy }}/{{ max_cap }}</strong>)
+            </span>
+          </div>
+
+          <div class="text-xs bg-black/25 p-2.5 rounded-lg border border-white/5 text-slate-200">
+            <span class="text-slate-400 font-medium">Student Reason:</span>
+            <span class="italic font-medium">"{{ req.reason }}"</span>
+          </div>
+
+          {% if req.admin_notes %}
+          <div class="text-[11px] text-slate-400">
+            Admin Note: <span class="{% if req.status == 'approved' %}text-emerald-300{% else %}text-rose-300{% endif %} font-medium">{{ req.admin_notes }}</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Right: Actions for Pending Requests -->
+        {% if req.status == 'pending' %}
+        <div class="flex items-center gap-2 shrink-0 self-end md:self-center">
+          <!-- Quick Approve Form -->
+          <form method="post" action="/admin/request-action" class="inline">
+            <input type="hidden" name="request_id" value="{{ req.id }}">
+            <input type="hidden" name="action" value="approve">
+            <input type="hidden" name="admin_notes" value="Approved by Transport Administrator">
+            <button 
+              type="submit" 
+              class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-extrabold text-xs shadow-md btn-press flex items-center gap-1.5"
+            >
+              <span>✓</span>
+              <span>Approve Request</span>
+            </button>
+          </form>
+
+          <!-- Reject Form -->
+          <form method="post" action="/admin/request-action" class="inline">
+            <input type="hidden" name="request_id" value="{{ req.id }}">
+            <input type="hidden" name="action" value="reject">
+            <input type="hidden" name="admin_notes" value="Declined due to bus seating limits">
+            <button 
+              type="submit" 
+              class="px-3 py-2 rounded-xl bg-white/5 hover:bg-rose-500/20 text-rose-300 border border-white/10 hover:border-rose-500/30 font-bold text-xs btn-press"
+              onclick="return confirm('Decline this bus change request for {{ req.student_name }}?')"
+            >
+              ✕ Decline
+            </button>
+          </form>
+        </div>
+        {% else %}
+        <div class="text-xs font-mono text-slate-400 shrink-0 text-right">
+          {% if req.status == 'approved' %}
+            <span class="text-emerald-400 font-bold">✓ Authorized for 04:30 PM Departure</span>
+          {% else %}
+            <span class="text-rose-400 font-bold">✕ Declined</span>
+          {% endif %}
+        </div>
+        {% endif %}
+
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="p-6 rounded-xl bg-white/5 border border-white/10 text-center text-xs text-slate-400 space-y-1">
+      <div class="text-sm font-semibold text-slate-300">✨ No student bus reassignment requests submitted today.</div>
+      <div class="text-[11px] text-slate-500">When students request evening bus changes through their portal, they will appear here for one-click approval.</div>
+    </div>
+    {% endif %}
   </div>
 
   <!-- Filters & Student Search Bar -->
