@@ -1,40 +1,133 @@
 {% extends "base.html" %}
+
+{% block title %}Manage Stops • Admin • {{ app_name }}{% endblock %}
+
 {% block content %}
 {% include "_admin_nav.html" %}
-<h1 class="text-xl font-bold mb-2">Stops</h1>
-<form method="post" class="bg-white rounded-xl border p-4 space-y-2 mb-4">
-  <input type="hidden" name="act" value="add">
-  <div class="font-semibold">Add a stop</div>
-  <div class="grid grid-cols-2 gap-2">
-    <input name="name" required placeholder="Stop name" class="border rounded-lg px-3 py-2 col-span-2">
-    <input name="landmark" placeholder="Landmark (optional)" class="border rounded-lg px-3 py-2 col-span-2">
-    <input id="lat" name="lat" required placeholder="Latitude" class="border rounded-lg px-3 py-2">
-    <input id="lng" name="lng" required placeholder="Longitude" class="border rounded-lg px-3 py-2">
+
+<div class="space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+    <div>
+      <h1 class="text-xl sm:text-2xl font-extrabold font-display text-white">
+        Transit Stops
+      </h1>
+      <p class="text-xs text-slate-400">
+        Geo-coordinate registry of pickup and drop-off stations across campus corridors.
+      </p>
+    </div>
+    <span class="text-xs font-mono font-bold px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-300">
+      Total Registered Stops: <strong class="text-white">{{ stops|length }}</strong>
+    </span>
   </div>
-  <div id="pick" class="h-56 rounded-lg border bg-slate-200"></div>
-  <p class="text-xs text-slate-500">Tap the map to fill latitude and longitude.</p>
-  <button class="bg-slate-900 text-white rounded-lg px-4 py-2 text-sm">Add stop</button>
-</form>
-<div class="space-y-2">
-{% for s in stops %}
-  <form method="post" class="bg-white rounded-xl border p-3 grid grid-cols-2 gap-2 text-sm">
-    <input type="hidden" name="id" value="{{ s['id'] }}">
-    <input name="name" value="{{ s['name'] }}" class="border rounded px-2 py-1.5 col-span-2" required>
-    <input name="landmark" value="{{ s['landmark'] or '' }}" placeholder="Landmark" class="border rounded px-2 py-1.5 col-span-2">
-    <input name="lat" value="{{ s['lat'] }}" class="border rounded px-2 py-1.5" required>
-    <input name="lng" value="{{ s['lng'] }}" class="border rounded px-2 py-1.5" required>
-    <div class="col-span-2 flex gap-2"><button name="act" value="save" class="bg-slate-900 text-white rounded px-3 py-1">Save</button>
-      <button name="act" value="delete" onclick="return confirm('Delete this stop?')" class="text-red-600 border border-red-300 rounded px-3 py-1">Delete</button></div>
-  </form>
-{% endfor %}
+
+  <!-- Add Stop Form with Interactive Leaflet Pin Picker -->
+  <div class="glass-panel rounded-2xl p-5 border border-white/10 space-y-4 shadow-xl">
+    <div class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+      <span>➕</span>
+      <span>Add New Transit Stop</span>
+    </div>
+
+    <form method="post" class="space-y-3 text-xs">
+      <input type="hidden" name="act" value="add">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="sm:col-span-2">
+          <label class="block text-slate-400 font-semibold mb-1">Stop Name</label>
+          <input name="name" required placeholder="e.g. Miyapur Crossroads" class="glass-input w-full rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500">
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block text-slate-400 font-semibold mb-1">Landmark / Station Location (Optional)</label>
+          <input name="landmark" placeholder="e.g. Near Metro Pillar 12" class="glass-input w-full rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500">
+        </div>
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Latitude</label>
+          <input id="lat" name="lat" required placeholder="e.g. 17.3688" class="glass-input w-full rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 font-mono">
+        </div>
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Longitude</label>
+          <input id="lng" name="lng" required placeholder="e.g. 78.5247" class="glass-input w-full rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 font-mono">
+        </div>
+      </div>
+
+      <!-- Map Pin Picker -->
+      <div>
+        <label class="block text-slate-400 font-semibold mb-1">Pick Location on Map (Click to auto-fill GPS coordinates)</label>
+        <div id="pick" class="h-60 rounded-xl border border-white/10 overflow-hidden shadow-inner"></div>
+        <p class="text-[11px] text-slate-400 mt-1">Tap anywhere on the map to pin the exact bus pickup spot.</p>
+      </div>
+
+      <button class="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs shadow-md btn-press flex items-center gap-1.5">
+        <span>✓</span>
+        <span>Add Stop to Fleet</span>
+      </button>
+    </form>
+  </div>
+
+  <!-- Stops Directory -->
+  <div class="space-y-3">
+    <div class="text-xs font-bold uppercase tracking-wider text-slate-400">
+      Registered Campus Stops Registry
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[600px] overflow-y-auto pr-1">
+      {% for s in stops %}
+      <form method="post" class="glass-card rounded-2xl p-4 border border-white/10 space-y-2.5 text-xs hover:border-white/20 transition-all">
+        <input type="hidden" name="id" value="{{ s['id'] }}">
+        
+        <div class="flex items-center justify-between gap-2">
+          <input name="name" value="{{ s['name'] }}" required class="glass-input flex-1 rounded-xl px-3 py-1.5 text-xs font-bold text-white">
+          <span class="text-[10px] font-mono text-slate-400 bg-white/5 px-2 py-1 rounded">ID: {{ s['id'] }}</span>
+        </div>
+
+        <input name="landmark" value="{{ s['landmark'] or '' }}" placeholder="Landmark description" class="glass-input w-full rounded-xl px-3 py-1.5 text-xs text-slate-300">
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <span class="text-[10px] text-slate-400 font-mono">Lat:</span>
+            <input name="lat" value="{{ s['lat'] }}" required class="glass-input w-full rounded-xl px-2.5 py-1 text-xs font-mono text-slate-200">
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 font-mono">Lng:</span>
+            <input name="lng" value="{{ s['lng'] }}" required class="glass-input w-full rounded-xl px-2.5 py-1 text-xs font-mono text-slate-200">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between gap-2 pt-2 border-t border-white/10">
+          <button name="act" value="save" class="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs btn-press">
+            Save Changes
+          </button>
+          {% if s['id'] != 1 and 'College' not in s['name'] %}
+          <button name="act" value="delete" onclick="return confirm('Delete this stop? Make sure it is removed from routes first.')" class="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 font-bold text-xs btn-press">
+            Delete
+          </button>
+          {% else %}
+          <span class="text-[10px] text-amber-400 font-bold">🏫 Primary Campus Gate</span>
+          {% endif %}
+        </div>
+      </form>
+      {% endfor %}
+    </div>
+  </div>
+
 </div>
 {% endblock %}
+
 {% block scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
 const m = L.map('pick').setView([17.33, 78.6], 10);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '&copy; OpenStreetMap'}).addTo(m);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19, 
+  attribution: '&copy; OpenStreetMap'
+}).addTo(m);
+
 let pin = null;
-m.on('click', e => { $('lat').value = e.latlng.lat.toFixed(6); $('lng').value = e.latlng.lng.toFixed(6); if (pin) pin.setLatLng(e.latlng); else pin = L.marker(e.latlng).addTo(m); });
+m.on('click', e => { 
+  document.getElementById('lat').value = e.latlng.lat.toFixed(6); 
+  document.getElementById('lng').value = e.latlng.lng.toFixed(6); 
+  if (pin) pin.setLatLng(e.latlng); 
+  else pin = L.marker(e.latlng).addTo(m); 
+});
 </script>
 {% endblock %}

@@ -627,8 +627,8 @@
       </div>
     </div>
 
-    <!-- 3 Action Tiles -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <!-- 4 Action Tiles including Bus Complaint Box -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       
       <!-- Button 1: Instant SOS Trigger -->
       <button 
@@ -643,7 +643,7 @@
         <div>
           <div class="text-sm font-extrabold text-rose-300 group-hover:text-rose-200">Instant SOS Alert</div>
           <div class="text-[11px] text-slate-300 leading-snug mt-0.5">
-            Broadcast emergency alert with live GPS to Campus Control Room.
+            Broadcast emergency alert with live GPS to Campus Control.
           </div>
         </div>
       </button>
@@ -666,7 +666,25 @@
         </div>
       </button>
 
-      <!-- Button 3: Direct Transport Desk Hotline -->
+      <!-- Button 3: Drop Bus Complaint & Problem -->
+      <button 
+        type="button" 
+        onclick="openModal('complaint-modal')"
+        class="glass-card rounded-xl p-4 border border-blue-500/40 bg-blue-500/10 hover:bg-blue-500/20 transition-all text-left space-y-2 btn-press group"
+      >
+        <div class="flex items-center justify-between">
+          <span class="text-xl">📮</span>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">Feedback</span>
+        </div>
+        <div>
+          <div class="text-sm font-extrabold text-blue-300 group-hover:text-blue-200">Drop Complaint</div>
+          <div class="text-[11px] text-slate-300 leading-snug mt-0.5">
+            Report bus issues, AC/cleanliness, delays, or driving problems.
+          </div>
+        </div>
+      </button>
+
+      <!-- Button 4: Direct Transport Desk Hotline -->
       <a 
         href="tel:+919848099999"
         class="glass-card rounded-xl p-4 border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all text-left space-y-2 btn-press group block"
@@ -678,7 +696,7 @@
         <div>
           <div class="text-sm font-extrabold text-emerald-300 group-hover:text-emerald-200">Transport Helpdesk</div>
           <div class="text-[11px] text-slate-300 leading-snug mt-0.5 font-mono">
-            +91 98480 99999 • Tap to call fleet coordinator
+            +91 98480 99999 • Coordinator
           </div>
         </div>
       </a>
@@ -1179,11 +1197,103 @@
   </div>
 </div>
 
+<!-- MODAL 5: BUS COMPLAINT & FEEDBACK BOX -->
+<div id="complaint-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
+  <div class="glass-panel w-full max-w-md rounded-2xl border border-blue-500/50 bg-slate-950 p-6 space-y-4 shadow-2xl relative text-white">
+    <div class="flex items-start justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-blue-500/20 text-blue-300 border border-blue-500/40 flex items-center justify-center text-xl">
+          📮
+        </div>
+        <div>
+          <h3 class="text-base font-extrabold text-white font-display">Bus Complaint & Problem Box</h3>
+          <p class="text-xs text-blue-300">Confidential Report for Bus {{ stu.bus_reg }}</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeModal('complaint-modal')" class="text-slate-400 hover:text-white text-lg font-bold p-1">✕</button>
+    </div>
+
+    <div class="p-3 rounded-xl bg-white/5 border border-white/10 text-xs flex justify-between">
+      <span>Student: <strong>{{ stu.name }} ({{ stu.roll_no }})</strong></span>
+      <span>Bus: <strong class="text-amber-400 font-mono">{{ stu.bus_reg }}</strong></span>
+    </div>
+
+    <form id="complaint-form" onsubmit="submitComplaint(event)" class="space-y-3.5 text-xs">
+      <div>
+        <label class="block font-bold text-slate-300 mb-1">Issue Category</label>
+        <select id="complaint-cat" class="glass-input w-full rounded-xl px-3 py-2 text-white bg-slate-900 border-white/20">
+          <option value="AC / Fans / Seating">❄️ AC / Fans / Broken Seating</option>
+          <option value="Cleanliness & Sanitation">🧹 Cleanliness & Bus Hygiene</option>
+          <option value="Rash Driving / Overspeeding">⚠️ Rash Driving / Safety Concern</option>
+          <option value="Punctuality & Delay">⏰ Delay / Bus Arrived Very Late</option>
+          <option value="Overcrowding">👥 Overcrowding / Seat Allotment</option>
+          <option value="Driver / Staff Conduct">💬 Driver / Staff Behavior</option>
+          <option value="Other Problem">❓ Other Vehicle Problem</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block font-bold text-slate-300 mb-1">Describe the Problem</label>
+        <textarea 
+          id="complaint-msg" 
+          rows="3" 
+          required 
+          placeholder="e.g. The AC in the back 3 rows is not blowing cold air and windows are jammed..."
+          class="glass-input w-full rounded-xl p-3 text-white placeholder-slate-500 border-white/20 focus:border-amber-400 focus:outline-none"
+        ></textarea>
+        <p class="text-[10px] text-slate-400 mt-1">Logged directly into the Campus Transport Desk grievance register.</p>
+      </div>
+
+      <div class="flex gap-2.5 pt-1">
+        <button type="button" onclick="closeModal('complaint-modal')" class="w-1/3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs border border-white/10">
+          Cancel
+        </button>
+        <button type="submit" id="complaint-submit-btn" class="w-2/3 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-extrabold text-xs shadow-md btn-press flex items-center justify-center gap-1.5">
+          <span>📬</span>
+          <span>Submit Complaint</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
+async function submitComplaint(e) {
+  e.preventDefault();
+  const cat = document.getElementById('complaint-cat').value;
+  const msg = document.getElementById('complaint-msg').value.trim();
+  const btn = document.getElementById('complaint-submit-btn');
+  if (!msg) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  try {
+    const res = await fetch('/api/student/complaint', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category: cat, message: msg })
+    });
+    const d = await res.json();
+    if (d.ok) {
+      toast(d.message);
+      closeModal('complaint-modal');
+      document.getElementById('complaint-msg').value = '';
+    } else {
+      alert(d.message || 'Failed to submit complaint');
+    }
+  } catch (err) {
+    alert('Network error submitting complaint.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>📬</span> <span>Submit Complaint</span>';
+  }
+}
+
 // ==================== AUDIO CHIME SYSTEM ====================
 let chimeEnabled = true;
 function toggleChimeAlert() {

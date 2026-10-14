@@ -1,29 +1,130 @@
 {% extends "base.html" %}
+
+{% block title %}Fleet Buses & Drivers • Admin • {{ app_name }}{% endblock %}
+
 {% block content %}
 {% include "_admin_nav.html" %}
-<h1 class="text-xl font-bold mb-2">Buses and drivers</h1>
-<p class="text-sm text-slate-500 mb-3">The PIN lets a driver share live GPS from the <a class="underline" href="{{ url_for('driver') }}">driver page</a>.</p>
-<form method="post" class="bg-white rounded-xl border p-4 grid grid-cols-2 gap-2 mb-4 text-sm">
-  <input type="hidden" name="act" value="add">
-  <input name="reg_no" required placeholder="Registration no." class="border rounded-lg px-3 py-2">
-  <input name="capacity" type="number" placeholder="Capacity" value="50" class="border rounded-lg px-3 py-2">
-  <input name="driver_name" placeholder="Driver name" class="border rounded-lg px-3 py-2">
-  <input name="token" placeholder="Driver PIN" class="border rounded-lg px-3 py-2">
-  <select name="route_id" class="border rounded-lg px-2 py-2 col-span-2"><option value="">No route yet</option>{% for r in routes %}<option value="{{ r['id'] }}">{{ r['code'] }} {{ r['name'] }}</option>{% endfor %}</select>
-  <button class="bg-slate-900 text-white rounded-lg py-2 col-span-2">Add bus</button>
-</form>
-<div class="space-y-2">
-{% for b in buses %}
-  <form method="post" class="bg-white rounded-xl border p-3 grid grid-cols-2 gap-2 text-sm">
-    <input type="hidden" name="id" value="{{ b['id'] }}">
-    <input name="reg_no" value="{{ b['reg_no'] }}" class="border rounded px-2 py-1.5">
-    <input name="capacity" type="number" value="{{ b['capacity'] }}" class="border rounded px-2 py-1.5">
-    <input name="driver_name" value="{{ b['driver_name'] or '' }}" placeholder="Driver" class="border rounded px-2 py-1.5">
-    <input name="token" value="{{ b['driver_token'] }}" class="border rounded px-2 py-1.5">
-    <select name="route_id" class="border rounded px-2 py-1.5 col-span-2"><option value="">No route</option>{% for r in routes %}<option value="{{ r['id'] }}" {% if r['id']==b['route_id'] %}selected{% endif %}>{{ r['code'] }} {{ r['name'] }}</option>{% endfor %}</select>
-    <div class="col-span-2 flex gap-2"><button name="act" value="save" class="bg-slate-900 text-white rounded px-3 py-1">Save</button>
-      <button name="act" value="delete" onclick="return confirm('Delete this bus?')" class="border border-red-300 text-red-600 rounded px-3 py-1">Delete</button></div>
-  </form>
-{% endfor %}
+
+<div class="space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+    <div>
+      <h1 class="text-xl sm:text-2xl font-extrabold font-display text-white">
+        Buses & Drivers Fleet
+      </h1>
+      <p class="text-xs text-slate-400">
+        Vehicle registrations, driver assignments, route links, and driver portal access credentials.
+      </p>
+    </div>
+    <span class="text-xs font-mono font-bold px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-300">
+      Total Buses: <strong class="text-amber-400">{{ buses|length }}</strong>
+    </span>
+  </div>
+
+  <!-- Add New Bus Form -->
+  <div class="glass-panel rounded-2xl p-5 border border-white/10 space-y-3 shadow-xl">
+    <div class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+      <span>➕</span>
+      <span>Add New Fleet Bus</span>
+    </div>
+
+    <form method="post" class="space-y-3 text-xs">
+      <input type="hidden" name="act" value="add">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Registration No.</label>
+          <input name="reg_no" required placeholder="e.g. TS 08 UA 9999" class="glass-input w-full rounded-xl px-3.5 py-2.5 text-white font-mono placeholder-slate-500">
+        </div>
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Seating Capacity</label>
+          <input name="capacity" type="number" value="50" min="10" max="60" class="glass-input w-full rounded-xl px-3.5 py-2.5 text-white font-mono">
+        </div>
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Assigned Driver Name</label>
+          <input name="driver_name" placeholder="e.g. Ramesh Kumar" class="glass-input w-full rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500">
+        </div>
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Driver GPS Security Token</label>
+          <input name="token" placeholder="e.g. 1111" class="glass-input w-full rounded-xl px-3.5 py-2.5 text-white font-mono">
+        </div>
+        <div class="sm:col-span-2 md:col-span-4">
+          <label class="block text-slate-400 font-semibold mb-1">Assigned Route</label>
+          <select name="route_id" class="glass-input w-full rounded-xl px-3.5 py-2.5 text-white bg-slate-900 border-white/20">
+            <option value="">No Route Assigned</option>
+            {% for r in routes %}
+            <option value="{{ r['id'] }}">{{ r['code'] }} • {{ r['name'] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="pt-1">
+        <button class="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs shadow-md btn-press flex items-center gap-1.5">
+          <span>✓</span>
+          <span>Add Bus to Fleet</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Bus Roster Cards -->
+  <div class="space-y-3">
+    <div class="text-xs font-bold uppercase tracking-wider text-slate-400">
+      Active Fleet Roster
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {% for b in buses %}
+      <form method="post" class="glass-card rounded-2xl p-4 border border-white/10 space-y-3 text-xs hover:border-white/20 transition-all">
+        <input type="hidden" name="id" value="{{ b['id'] }}">
+
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">🚌</span>
+            <input name="reg_no" value="{{ b['reg_no'] }}" required class="glass-input rounded-xl px-3 py-1.5 text-xs font-mono font-extrabold text-white">
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-[10px] text-slate-400 font-medium">Cap:</span>
+            <input name="capacity" type="number" value="{{ b['capacity'] }}" class="glass-input w-16 rounded-xl px-2 py-1 text-xs font-mono text-center text-amber-400 font-bold">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[10px] text-slate-400 font-medium mb-0.5">Driver Name</label>
+            <input name="driver_name" value="{{ b['driver_name'] or '' }}" placeholder="Driver" class="glass-input w-full rounded-xl px-2.5 py-1.5 text-xs text-white">
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-400 font-medium mb-0.5">Driver PIN / Token</label>
+            <input name="token" value="{{ b['driver_token'] }}" class="glass-input w-full rounded-xl px-2.5 py-1.5 text-xs font-mono text-slate-300">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[10px] text-slate-400 font-medium mb-0.5">Assigned Route</label>
+          <select name="route_id" class="glass-input w-full rounded-xl px-2.5 py-1.5 text-xs text-white bg-slate-900 border-white/20">
+            <option value="">No route assigned</option>
+            {% for r in routes %}
+            <option value="{{ r['id'] }}" {% if r['id']==b['route_id'] %}selected{% endif %}>
+              {{ r['code'] }} • {{ r['name'] }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="flex items-center justify-between gap-2 pt-2 border-t border-white/10">
+          <button name="act" value="save" class="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs btn-press">
+            Save Changes
+          </button>
+          <button name="act" value="delete" onclick="return confirm('Delete bus {{ b.reg_no }}?')" class="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 font-bold text-xs btn-press">
+            Delete
+          </button>
+        </div>
+      </form>
+      {% endfor %}
+    </div>
+  </div>
+
 </div>
 {% endblock %}

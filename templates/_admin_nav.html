@@ -10,6 +10,9 @@
   <a href="{{ href }}" class="px-3.5 py-1.5 rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 {% if request.path == href or (href != url_for('admin_home') and request.path.startswith(href)) %}bg-amber-400 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}bg-slate-900/60 hover:bg-slate-800 text-slate-300 border border-white/10{% endif %}">
     <span>{{ icon }}</span>
     <span>{{ label }}</span>
+    {% if label == 'Allocations' and pending_bus_requests_count and pending_bus_requests_count > 0 %}
+    <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white animate-pulse">{{ pending_bus_requests_count }}</span>
+    {% endif %}
   </a>
   {% endfor %}
   <a href="{{ url_for('logout') }}" class="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10 ml-auto whitespace-nowrap transition-colors">

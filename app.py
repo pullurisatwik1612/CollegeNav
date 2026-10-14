@@ -107,6 +107,18 @@ CREATE TABLE IF NOT EXISTS bus_change_requests(
   admin_notes TEXT,
   created_ts REAL NOT NULL,
   resolved_ts REAL);
+CREATE TABLE IF NOT EXISTS complaints(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  student_id INTEGER NOT NULL,
+  student_roll TEXT,
+  student_name TEXT,
+  bus_id INTEGER,
+  bus_reg TEXT,
+  route_code TEXT,
+  category TEXT NOT NULL,
+  message TEXT NOT NULL,
+  created_ts REAL NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open');
 """
 ALERT_KINDS = ["delay", "cancelled", "diversion", "info"]
 DAY_NAMES = {1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 7: "Sun"}
@@ -1062,6 +1074,48 @@ def api_student_cancel_bus_change():
     return redirect(url_for("student_home"))
 
 
+@app.route("/api/student/complaint", methods=["POST"])
+@student_required
+def api_student_complaint():
+    stu = get_current_student()
+    if not stu:
+        return jsonify(ok=False, message="Student session not found"), 401
+
+    data = request.get_json(silent=True) or request.form
+    category = data.get("category", "General Bus Issue").strip()
+    message = data.get("message", "").strip()
+
+    if not message:
+        msg = "Please describe the problem or complaint."
+        if request.is_json:
+            return jsonify(ok=False, message=msg), 400
+        flash(msg, "warn")
+        return redirect(url_for("student_home"))
+
+    now_ts = time.time()
+    c = db()
+    c.execute("""
+        INSERT INTO complaints(student_id, student_roll, student_name, bus_id, bus_reg, route_code, category, message, created_ts)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (stu["id"], stu["roll_no"], stu["name"], stu["bus_id"], stu["bus_reg"], stu["route_code"], category, message, now_ts))
+
+    # Also notify transport desk via alerts table
+    if stu["route_id"]:
+        c.execute("""
+            INSERT INTO alerts(route_id, kind, message, created_ts, expires_ts, active)
+            VALUES (?, 'info', ?, ?, ?, 1)
+        """, (stu["route_id"],
+              f"📢 [STUDENT COMPLAINT • {stu['bus_reg']}] {category}: {message} (From {stu['name']}, {stu['roll_no']})",
+              now_ts, now_ts + 86400))
+    c.commit()
+
+    resp_msg = f"Complaint dropped! Transport Desk notified for Bus {stu['bus_reg']} ({category})."
+    if request.is_json:
+        return jsonify(ok=True, message=resp_msg)
+    flash(resp_msg, "ok")
+    return redirect(url_for("student_home"))
+
+
 @app.route("/api/student/toggle-travel", methods=["POST"])
 @student_required
 def api_student_toggle_travel():
@@ -1384,6 +1438,18 @@ def api_driver_location():
     return jsonify(ok=True)
 
 
+@app.context_processor
+def inject_admin_badges():
+    if session.get("role") == "admin":
+        try:
+            today_str = local_now().strftime("%Y-%m-%d")
+            count = db().execute("SELECT COUNT(*) FROM bus_change_requests WHERE request_date=? AND status='pending'", (today_str,)).fetchone()[0]
+            return {"pending_bus_requests_count": count}
+        except Exception:
+            pass
+    return {"pending_bus_requests_count": 0}
+
+
 # ------------------------------- admin --------------------------------------
 @app.route("/admin")
 @admin_required
@@ -1409,10 +1475,19 @@ def admin_home():
         "LEFT JOIN drivers d ON d.bus_id = b.id "
         "ORDER BY b.reg_no").fetchall()
 
+    today_str = local_now().strftime("%Y-%m-%d")
+    pending_bus_requests_count = c.execute(
+        "SELECT COUNT(*) FROM bus_change_requests WHERE request_date=? AND status='pending'",
+        (today_str,)
+    ).fetchone()[0]
+    recent_complaints = c.execute("SELECT * FROM complaints ORDER BY id DESC LIMIT 5").fetchall()
+
     return render_template("admin_home.html", counts=counts, stale=stale, gps=gps,
                            sim_mode=get_setting("sim_mode", "loop"), fresh=freshness,
                            buses_summary=buses_summary,
-                           routes=c.execute("SELECT * FROM routes ORDER BY code").fetchall())
+                           routes=c.execute("SELECT * FROM routes ORDER BY code").fetchall(),
+                           pending_bus_requests_count=pending_bus_requests_count,
+                           recent_complaints=recent_complaints)
 
 
 @app.route("/admin/allocations")

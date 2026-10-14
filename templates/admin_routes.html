@@ -1,19 +1,88 @@
 {% extends "base.html" %}
 {% from "_macros.html" import fresh_badge %}
+
+{% block title %}Manage Routes • Admin • {{ app_name }}{% endblock %}
+
 {% block content %}
 {% include "_admin_nav.html" %}
-<h1 class="text-xl font-bold mb-2">Routes</h1>
-<form method="post" class="bg-white rounded-xl border p-4 grid grid-cols-6 gap-2 mb-4 text-sm">
-  <input name="code" required placeholder="Code (R5)" class="border rounded-lg px-3 py-2 col-span-2">
-  <input name="name" required placeholder="Name (Uppal to College)" class="border rounded-lg px-3 py-2 col-span-3">
-  <input name="color" type="color" value="#2563eb" class="border rounded-lg h-10 w-full">
-  <button class="bg-slate-900 text-white rounded-lg py-2 col-span-6">Create route</button>
-</form>
-<div class="space-y-2">
-{% for x in rows %}
-  <a href="{{ url_for('admin_route', route_id=x.r['id']) }}" class="flex items-center justify-between bg-white rounded-xl border p-3 text-sm {% if x.r['status']!='active' %}opacity-70{% endif %}">
-    <div><span class="dot" style="background:{{ x.r['color'] }}"></span> <b>{{ x.r['code'] }}</b> {{ x.r['name'] }}{% if x.r['status']!='active' %} <span class="text-red-700 text-xs">(suspended)</span>{% endif %}</div>
-    {{ fresh_badge(x.fresh) }}</a>
-{% endfor %}
+
+<div class="space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+    <div>
+      <h1 class="text-xl sm:text-2xl font-extrabold font-display text-white">
+        Transit Routes
+      </h1>
+      <p class="text-xs text-slate-400">
+        Create, edit, verify, and monitor all active college transit corridors.
+      </p>
+    </div>
+    <span class="text-xs font-mono font-bold px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-300">
+      Total Routes: <strong class="text-white">{{ rows|length }}</strong>
+    </span>
+  </div>
+
+  <!-- Create Route Form -->
+  <div class="glass-panel rounded-2xl p-5 border border-white/10 space-y-3 shadow-xl">
+    <div class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+      <span>➕</span>
+      <span>Add New Transit Route</span>
+    </div>
+
+    <form method="post" class="grid grid-cols-1 sm:grid-cols-6 gap-3 text-xs">
+      <div class="sm:col-span-2">
+        <label class="block text-slate-400 font-semibold mb-1">Route Code</label>
+        <input name="code" required placeholder="e.g. R11" class="glass-input w-full rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 font-mono">
+      </div>
+      <div class="sm:col-span-3">
+        <label class="block text-slate-400 font-semibold mb-1">Route Name</label>
+        <input name="name" required placeholder="e.g. Kompally ↔ College" class="glass-input w-full rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500">
+      </div>
+      <div class="sm:col-span-1">
+        <label class="block text-slate-400 font-semibold mb-1">Color</label>
+        <input name="color" type="color" value="#2563eb" class="glass-input w-full rounded-xl h-10 p-1 cursor-pointer">
+      </div>
+      <div class="sm:col-span-6 pt-1">
+        <button class="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs shadow-md btn-press flex items-center gap-1.5">
+          <span>✓</span>
+          <span>Create Route</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Route List -->
+  <div class="space-y-2.5">
+    <div class="text-xs font-bold uppercase tracking-wider text-slate-400">
+      Active Campus Routes (Click any route to edit stops & schedules)
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+      {% for x in rows %}
+      <a href="{{ url_for('admin_route', route_id=x.r['id']) }}" class="glass-card rounded-2xl p-4 border border-white/10 hover:border-amber-400/40 transition-all flex items-center justify-between gap-3 group {% if x.r['status']!='active' %}opacity-60{% endif %}">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm" style="background: {{ x.r['color'] }};"></span>
+          <div class="min-w-0">
+            <div class="text-sm font-extrabold text-white group-hover:text-amber-400 transition-colors flex items-center gap-1.5">
+              <span class="font-mono">{{ x.r['code'] }}</span>
+              <span>•</span>
+              <span class="truncate">{{ x.r['name'] }}</span>
+            </div>
+            {% if x.r['status'] != 'active' %}
+            <span class="text-[10px] text-rose-400 font-bold uppercase">Suspended</span>
+            {% else %}
+            <span class="text-[10px] text-slate-400">Tap to view stops & timetable</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="shrink-0">
+          {{ fresh_badge(x.fresh) }}
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
 </div>
 {% endblock %}
