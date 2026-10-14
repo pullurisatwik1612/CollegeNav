@@ -603,7 +603,7 @@ def admin_logout():
 
 
 # ------------------------------- student portal -----------------------------
-@app.route("/student", endpoint="student")
+@app.route("/student")
 @student_required
 def student_home():
     stu = get_current_student()
@@ -674,7 +674,7 @@ def api_student_toggle_travel():
 
 
 # ------------------------------- driver portal ------------------------------
-@app.route("/driver", endpoint="driver")
+@app.route("/driver")
 @driver_required
 def driver_home():
     drv = get_current_driver()
@@ -741,7 +741,9 @@ def api_driver_broadcast_delay():
                  (drv["route_id"], kind, f"[{drv['bus_reg']}] {msg}", now, now + 4 * 3600))
     db().commit()
     flash("Notice broadcasted to all students on your route.", "ok")
-    return jsonify(ok=True)
+# URL aliases for backward compatibility
+app.add_url_rule("/driver", endpoint="driver", view_func=driver_home)
+app.add_url_rule("/student", endpoint="student", view_func=student_home)
 
 
 # ------------------------------- public pages -------------------------------
