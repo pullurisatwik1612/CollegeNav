@@ -1,0 +1,6 @@
+<div class="flex gap-2 text-sm mb-4 overflow-x-auto">
+  {% for href, label in [(url_for('admin_home'), 'Overview'), (url_for('admin_routes'), 'Routes'), (url_for('admin_stops'), 'Stops'), (url_for('admin_buses'), 'Buses'), (url_for('admin_alerts'), 'Notices')] %}
+  <a href="{{ href }}" class="px-3 py-1.5 rounded-full whitespace-nowrap {% if request.path == href or (href != url_for('admin_home') and request.path.startswith(href)) %}bg-slate-900 text-white{% else %}bg-white border{% endif %}">{{ label }}</a>
+  {% endfor %}
+  <a href="{{ url_for('admin_logout') }}" class="px-3 py-1.5 rounded-full bg-white border ml-auto whitespace-nowrap">Log out</a>
+</div>

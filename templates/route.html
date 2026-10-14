@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "_macros.html" import fresh_badge, alert_box %}
+{% block content %}
+<a href="{{ url_for('routes_list') }}" class="text-sm text-amber-700">← All routes</a>
+<div class="mt-2 flex items-start justify-between gap-2">
+  <div><h1 class="text-xl font-bold"><span class="dot" style="background:{{ r['color'] }}"></span> {{ r['code'] }} <span class="font-normal text-slate-600">{{ r['name'] }}</span></h1>
+    {% if r['notes'] %}<p class="text-sm text-slate-500">{{ r['notes'] }}</p>{% endif %}</div>
+  <button id="follow" class="text-sm border rounded-lg px-3 py-1.5 bg-white whitespace-nowrap">☆ Follow</button>
+</div>
+<div class="mt-2 flex gap-2 flex-wrap items-center">{{ fresh_badge(fresh) }}
+  {% if r['status']!='active' %}<span class="text-xs bg-red-100 text-red-800 rounded-full px-2 py-0.5">⛔ Suspended</span>{% endif %}</div>
+<div class="mt-3 space-y-2">{% for a in alerts %}{{ alert_box(a) }}{% endfor %}</div>
+
+<div id="map" class="mt-3 h-64 rounded-xl overflow-hidden border bg-slate-200"></div>
+<div id="livebox" class="mt-2 text-sm bg-white rounded-lg px-3 py-2 border">Checking live location...</div>
+
+<h2 class="mt-5 mb-2 font-semibold">Stops</h2>
+<ol class="bg-white rounded-xl shadow divide-y">
+{% for s in stops %}
+  <li class="px-4 py-3 flex items-center gap-3 {% if s.name==highlight %}bg-amber-50{% endif %}" data-stop="{{ s.stop_id }}">
+    <span class="dot" style="background:{{ r['color'] }}"></span>
+    <div class="flex-1"><div class="font-medium">{{ s.name }}</div><div class="text-xs text-slate-500">+{{ s.offset_min }} min after first stop</div></div>
+    <div class="text-sm text-right eta" data-stop="{{ s.stop_id }}"></div>
+  </li>
+{% else %}<li class="px-4 py-3 text-slate-500">No stops added yet.</li>{% endfor %}
+</ol>
+
+<h2 class="mt-5 mb-2 font-semibold">Departure times <span class="text-xs font-normal text-slate-500">(at {{ stops[0].name if stops else 'first stop' }})</span></h2>
+<div class="flex flex-wrap gap-2">{% for t in times %}<span class="bg-white border rounded-lg px-3 py-1 text-sm">{{ t.t }}</span>{% else %}<span class="text-slate-500 text-sm">No schedule published.</span>{% endfor %}</div>
+<p class="text-xs text-slate-500 mt-2">Runs: {% for d in days %}{{ day_names[d] }}{% if not loop.last %}, {% endif %}{% else %}not specified{% endfor %}</p>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+const RID = {{ r['id'] }}, COLOR = {{ r['color']|tojson }}, STOPS = {{ stops|tojson }};
+const map = L.map('map'); 
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '&copy; OpenStreetMap'}).addTo(map);
+if (STOPS.length) {
+  const pts = STOPS.map(s => [s.lat, s.lng]);
+  L.polyline(pts, {color: COLOR, weight: 5, opacity: .85}).addTo(map);
+  STOPS.forEach((s, i) => L.circleMarker([s.lat, s.lng], {radius: 7, color: '#fff', weight: 2, fillColor: COLOR, fillOpacity: 1}).addTo(map).bindTooltip(s.name, {permanent: i === 0 || i === STOPS.length - 1}));
+  map.fitBounds(pts, {padding: [30, 30]});
+} else { map.setView([17.38, 78.48], 10); }
+let busMarker = null;
+async function refresh(){
+  try {
+    const d = await (await fetch('/api/live/' + RID)).json();
+    document.querySelectorAll('.eta').forEach(e => e.textContent = '');
+    if (!d.available) { $('livebox').innerHTML = '○ ' + d.message; if (busMarker) { map.removeLayer(busMarker); busMarker = null; } return; }
+    const ll = [d.lat, d.lng];
+    if (!busMarker) busMarker = L.marker(ll, {icon: L.divIcon({html: '🚌', className: 'bus-icon', iconSize: [30, 30]})}).addTo(map); else busMarker.setLatLng(ll);
+    $('livebox').innerHTML = `<span class="text-emerald-700">●</span> <b>${d.label}</b>: bus ${d.bus}` + (d.source === 'sim' ? ' <span class="text-xs text-slate-500">(demo simulation, not a real GPS feed)</span>' : '');
+    d.etas.forEach(e => { const el = document.querySelector(`.eta[data-stop="${e.stop_id}"]`); if (el) el.innerHTML = e.eta_min === null ? '<span class="text-slate-400">passed ✓</span>' : `<b class="text-emerald-700">${e.eta_min === 0 ? 'now' : e.eta_min + ' min'}</b>`; });
+  } catch (e) {}
+}
+refresh(); setInterval(refresh, 6000);
+const fb = $('follow');
+function subs(){ try { return JSON.parse(localStorage.getItem('subs') || '[]'); } catch (e) { return []; } }
+function paint(){ const on = subs().includes(RID); fb.textContent = on ? '★ Following' : '☆ Follow'; fb.className = 'text-sm border rounded-lg px-3 py-1.5 whitespace-nowrap ' + (on ? 'bg-amber-100 border-amber-400' : 'bg-white'); }
+fb.onclick = () => { let s = subs(); s = s.includes(RID) ? s.filter(x => x !== RID) : s.concat(RID); try { localStorage.setItem('subs', JSON.stringify(s)); } catch (e) {} paint(); toast(subs().includes(RID) ? 'You will get alerts for this route.' : 'Stopped following this route.'); };
+paint();
+</script>
+{% endblock %}

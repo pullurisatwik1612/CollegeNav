@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% from "_macros.html" import alert_box %}
+{% block content %}
+<h1 class="text-xl font-bold mb-3">Service notices</h1>
+<div class="space-y-2">{% for a in alerts %}{{ alert_box(a) }}{% else %}<p class="text-slate-500">No active notices. Services are running as scheduled.</p>{% endfor %}</div>
+<p class="text-xs text-slate-500 mt-4">Tap the 🔔 at the top to get a pop-up the moment a new notice is published.</p>
+{% endblock %}

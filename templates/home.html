@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% from "_macros.html" import fresh_badge, alert_box %}
+{% block content %}
+<form id="sf" method="get" action="/" class="bg-white rounded-xl shadow p-4 space-y-3">
+  <div class="flex gap-2 items-end">
+    <label class="flex-1 text-xs font-semibold text-slate-500">FROM
+      <input id="from" name="from" value="{{ f }}" list="stoplist" autocomplete="off" required placeholder="Where are you?" class="w-full border rounded-lg px-3 py-2.5 text-base text-slate-900 mt-1"></label>
+    <button type="button" id="locBtn" class="border rounded-lg px-3 py-2.5 text-lg" title="Use my location" aria-label="Use my location">📍</button>
+  </div>
+  <div class="flex gap-2 items-end">
+    <label class="flex-1 text-xs font-semibold text-slate-500">TO
+      <input id="to" name="to" value="{{ t }}" list="stoplist" autocomplete="off" required placeholder="Where to?" class="w-full border rounded-lg px-3 py-2.5 text-base text-slate-900 mt-1"></label>
+    <button type="button" id="swap" class="border rounded-lg px-3 py-2.5 text-lg" title="Swap" aria-label="Swap start and destination">⇅</button>
+  </div>
+  <datalist id="stoplist">{% for s in all_stops %}<option value="{{ s['name'] }}">{% endfor %}</datalist>
+  <div class="flex gap-2 items-end">
+    <label class="text-xs font-semibold text-slate-500">LEAVING AT
+      <input type="time" name="time" value="{{ time_str }}" class="block border rounded-lg px-3 py-2 text-base text-slate-900 mt-1"></label>
+    <button class="flex-1 bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold rounded-lg py-3">Find buses</button>
+  </div>
+  <p id="locNote" class="text-xs text-slate-500"></p>
+</form>
+
+<button id="nearBtn" class="mt-3 w-full bg-white border rounded-xl py-2.5 text-sm font-medium">📍 Show bus stops near me</button>
+<div id="nearBox" class="hidden mt-2 bg-white rounded-xl shadow divide-y"></div>
+
+{% if error %}<div class="mt-4 bg-red-50 border border-red-300 text-red-800 rounded-lg px-4 py-3 text-sm">{{ error }}</div>{% endif %}
+
+{% if searched and not error %}
+  <h2 class="mt-6 mb-2 font-bold text-lg">{{ f }} → {{ t }}</h2>
+  {% if not direct and not transfers %}
+    <div class="bg-white rounded-xl p-4 text-sm text-slate-600">No route connects these stops yet. Try a nearby stop, or check the <a class="underline text-amber-700" href="{{ url_for('routes_list') }}">route list</a>.</div>
+  {% endif %}
+  {% for d in direct %}
+  <div class="bg-white rounded-xl shadow mb-3 overflow-hidden {% if d.unavailable %}opacity-70{% endif %}">
+    <div class="h-1.5" style="background:{{ d.color }}"></div>
+    <div class="p-4 space-y-2">
+      <div class="flex items-start justify-between gap-2">
+        <div><span class="dot" style="background:{{ d.color }}"></span> <b>{{ d.code }}</b> <span class="text-slate-500 text-sm">{{ d.name }}</span>
+          <div class="text-sm text-slate-600">{{ d.duration }} min · {{ d.stops_between }} stop{{ 's' if d.stops_between != 1 }}</div></div>
+        <a href="{{ url_for('route_detail', route_id=d.route_id, stop=d.from) }}" class="text-xs text-amber-700 underline whitespace-nowrap">View route</a>
+      </div>
+      {% if d.unavailable %}
+        <div class="text-sm bg-red-50 text-red-800 rounded px-3 py-2">⛔ Unavailable: {{ d.reason }}</div>
+      {% else %}
+        {% if d.deps %}
+        <div class="flex flex-wrap gap-2">
+          {% for x in d.deps %}<div class="rounded-lg border px-3 py-1.5 text-sm {% if loop.first %}bg-amber-50 border-amber-300{% endif %}">
+            <b>{{ x.clock }}</b>{% if x.day != 'today' %} <span class="text-xs text-slate-500">{{ x.day }}</span>{% endif %}
+            <div class="text-xs text-slate-500">{% if x.wait < 60 %}in {{ x.wait }} min{% else %}in {{ (x.wait // 60) }} h {{ x.wait % 60 }} m{% endif %}</div></div>{% endfor %}
+        </div>
+        <div class="text-xs text-slate-500">Board at <b>{{ d.from }}</b>, get off at <b>{{ d.to }}</b>. Times shown are at your stop.</div>
+        {% else %}<div class="text-sm bg-amber-50 text-amber-900 rounded px-3 py-2">{{ d.reason }}</div>{% endif %}
+        {% if d.live.available %}
+          <div class="text-sm text-emerald-700">● {{ d.live.label }}: bus {{ d.live.bus }}{% if d.live.eta_from is not none %} is about <b>{{ d.live.eta_from }} min</b> from {{ d.from }}{% else %} has passed {{ d.from }}{% endif %}</div>
+        {% else %}<div class="text-xs text-slate-500">○ {{ d.live.message }}</div>{% endif %}
+      {% endif %}
+      <div class="flex flex-wrap gap-2 items-center">{{ fresh_badge(d.fresh) }}</div>
+      {% for a in d.alerts %}{{ alert_box(a) }}{% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+
+  {% if transfers %}
+  <h3 class="mt-5 mb-2 font-semibold">With one change</h3>
+  {% for x in transfers %}
+  <div class="bg-white rounded-xl shadow mb-3 p-4 space-y-1.5 text-sm">
+    <div><span class="dot" style="background:{{ x.a_color }}"></span> <b>{{ x.a_code }}</b> at {{ x.dep }} → change at <b>{{ x.change_at }}</b> ({{ x.arrive_change }})
+      → <span class="dot" style="background:{{ x.b_color }}"></span> <b>{{ x.b_code }}</b> at {{ x.dep_b }}</div>
+    <div class="text-slate-600">Arrive <b>{{ x.arrive }}</b> · about {{ x.total_min }} min in total (waiting {{ x.wait_change }} min at the change)</div>
+    {% if x.fresh_warn %}<div class="text-xs text-red-700">⚠ One of these routes has outdated information. Double-check before travelling.</div>{% endif %}
+  </div>
+  {% endfor %}{% endif %}
+{% endif %}
+
+{% if notices %}
+<h3 class="mt-6 mb-2 font-semibold">Latest notices</h3>
+<div class="space-y-2">{% for a in notices %}{{ alert_box(a) }}{% endfor %}</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const nameFor = (lat, lng) => fetch(`/api/nearest?lat=${lat}&lng=${lng}&n=5`).then(r => r.json());
+function getPos(){ return new Promise((ok, no) => navigator.geolocation ? navigator.geolocation.getCurrentPosition(ok, no, {enableHighAccuracy:true, timeout:10000}) : no(new Error('no geolocation'))); }
+$('swap').onclick = () => { const a = $('from').value; $('from').value = $('to').value; $('to').value = a; };
+$('locBtn').onclick = async () => {
+  $('locNote').textContent = 'Finding your nearest stop...';
+  try {
+    const p = await getPos(); const d = await nameFor(p.coords.latitude, p.coords.longitude);
+    const s = d.stops[0]; $('from').value = s.name;
+    $('locNote').textContent = `Nearest stop: ${s.name}, about ${s.distance_m} m away (${s.walk_min} min walk).`;
+  } catch (e) { $('locNote').textContent = 'Could not get your location. Type your stop instead.'; }
+};
+$('nearBtn').onclick = async () => {
+  const box = $('nearBox'); box.classList.remove('hidden'); box.innerHTML = '<div class="p-3 text-sm text-slate-500">Finding stops near you...</div>';
+  try {
+    const p = await getPos(); const d = await nameFor(p.coords.latitude, p.coords.longitude);
+    box.innerHTML = d.stops.map(s => `<a href="/?from=${encodeURIComponent(s.name)}" class="block p-3 text-sm">
+      <div class="flex justify-between"><b>${s.name}</b><span class="text-slate-500">${s.distance_m} m · ${s.walk_min} min walk</span></div>
+      <div class="mt-1 flex gap-1 flex-wrap">${s.routes.map(r => `<span class="text-xs rounded px-1.5 py-0.5 text-white" style="background:${r.color}">${r.code}</span>`).join('') || '<span class="text-xs text-slate-400">No active routes</span>'}</div></a>`).join('');
+  } catch (e) { box.innerHTML = '<div class="p-3 text-sm text-slate-500">Could not get your location. Allow location access, or type a stop above.</div>'; }
+};
+</script>
+{% endblock %}

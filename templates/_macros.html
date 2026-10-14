@@ -1,0 +1,9 @@
+{% macro fresh_badge(f) %}
+<span class="text-xs px-2 py-0.5 rounded-full {% if f.level=='ok' %}bg-green-100 text-green-800{% elif f.level=='warn' %}bg-amber-100 text-amber-800{% else %}bg-red-100 text-red-800{% endif %}">{% if f.level=='ok' %}✔{% else %}⚠{% endif %} {{ f.text }}</span>
+{% endmacro %}
+{% macro alert_box(a) %}
+<div class="text-sm rounded px-3 py-2 border-l-4 {% if a.kind=='cancelled' %}bg-red-50 border-red-500 text-red-900{% elif a.kind=='delay' %}bg-amber-50 border-amber-500 text-amber-900{% elif a.kind=='diversion' %}bg-orange-50 border-orange-500 text-orange-900{% else %}bg-sky-50 border-sky-500 text-sky-900{% endif %}">
+  <b class="uppercase text-xs">{{ a.kind }}</b>{% if a.route_code %} · {{ a.route_code }}{% else %} · All routes{% endif %}
+  <span class="text-xs opacity-70"> · {{ a.age }}</span><div>{{ a.message }}</div>
+</div>
+{% endmacro %}

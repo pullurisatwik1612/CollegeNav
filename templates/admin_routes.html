@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_macros.html" import fresh_badge %}
+{% block content %}
+{% include "_admin_nav.html" %}
+<h1 class="text-xl font-bold mb-2">Routes</h1>
+<form method="post" class="bg-white rounded-xl border p-4 grid grid-cols-6 gap-2 mb-4 text-sm">
+  <input name="code" required placeholder="Code (R5)" class="border rounded-lg px-3 py-2 col-span-2">
+  <input name="name" required placeholder="Name (Uppal to College)" class="border rounded-lg px-3 py-2 col-span-3">
+  <input name="color" type="color" value="#2563eb" class="border rounded-lg h-10 w-full">
+  <button class="bg-slate-900 text-white rounded-lg py-2 col-span-6">Create route</button>
+</form>
+<div class="space-y-2">
+{% for x in rows %}
+  <a href="{{ url_for('admin_route', route_id=x.r['id']) }}" class="flex items-center justify-between bg-white rounded-xl border p-3 text-sm {% if x.r['status']!='active' %}opacity-70{% endif %}">
+    <div><span class="dot" style="background:{{ x.r['color'] }}"></span> <b>{{ x.r['code'] }}</b> {{ x.r['name'] }}{% if x.r['status']!='active' %} <span class="text-red-700 text-xs">(suspended)</span>{% endif %}</div>
+    {{ fresh_badge(x.fresh) }}</a>
+{% endfor %}
+</div>
+{% endblock %}

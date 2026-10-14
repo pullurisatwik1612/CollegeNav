@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "_macros.html" import fresh_badge %}
+{% block content %}
+{% include "_admin_nav.html" %}
+<h1 class="text-xl font-bold mb-2"><span class="dot" style="background:{{ r['color'] }}"></span> {{ r['code'] }} {{ r['name'] }}</h1>
+
+<form method="post" class="bg-white rounded-xl border p-4 mb-4 space-y-2 text-sm">
+  <input type="hidden" name="act" value="info">
+  <div class="font-semibold">Details</div>
+  <div class="grid grid-cols-6 gap-2">
+    <input name="code" value="{{ r['code'] }}" required class="border rounded-lg px-3 py-2 col-span-2">
+    <input name="name" value="{{ r['name'] }}" required class="border rounded-lg px-3 py-2 col-span-3">
+    <input name="color" type="color" value="{{ r['color'] }}" class="border rounded-lg h-10 w-full">
+    <select name="status" class="border rounded-lg px-2 py-2 col-span-3"><option value="active" {% if r['status']=='active' %}selected{% endif %}>Active</option><option value="suspended" {% if r['status']!='active' %}selected{% endif %}>Suspended</option></select>
+    <input name="last_verified" type="date" value="{{ r['last_verified'] or '' }}" class="border rounded-lg px-3 py-2 col-span-3">
+    <input name="notes" value="{{ r['notes'] or '' }}" placeholder="Notes shown to students" class="border rounded-lg px-3 py-2 col-span-6">
+  </div>
+  <div class="flex items-center gap-2 flex-wrap"><button class="bg-slate-900 text-white rounded-lg px-4 py-2">Save details</button>{{ fresh_badge(fresh) }}</div>
+</form>
+<form method="post" class="mb-4"><input type="hidden" name="act" value="verify"><button class="text-sm border rounded-lg px-3 py-2 bg-white">✔ I checked this route today: mark as verified</button></form>
+
+<form method="post" class="bg-white rounded-xl border p-4 mb-4 space-y-2 text-sm">
+  <input type="hidden" name="act" value="stops">
+  <div class="font-semibold">Stops in order <span class="font-normal text-slate-500">(minutes after the first stop)</span></div>
+  <div id="rows" class="space-y-2">
+    {% for s in stops %}
+    <div class="flex gap-2 items-center row">
+      <select name="stop_id" class="border rounded-lg px-2 py-2 flex-1">{% for o in stop_options %}<option value="{{ o['id'] }}" {% if o['id']==s.stop_id %}selected{% endif %}>{{ o['name'] }}</option>{% endfor %}</select>
+      <input name="offset" type="number" min="0" value="{{ s.offset_min }}" class="border rounded-lg px-2 py-2 w-20" aria-label="Minutes after first stop">
+      <button type="button" onclick="this.parentElement.remove()" class="text-red-600 px-2" aria-label="Remove stop">✕</button>
+    </div>{% endfor %}
+  </div>
+  <div class="flex gap-2"><button type="button" id="addRow" class="border rounded-lg px-3 py-2">+ Add stop</button><button class="bg-slate-900 text-white rounded-lg px-4 py-2">Save stops</button></div>
+  <template id="tpl"><div class="flex gap-2 items-center row">
+      <select name="stop_id" class="border rounded-lg px-2 py-2 flex-1">{% for o in stop_options %}<option value="{{ o['id'] }}">{{ o['name'] }}</option>{% endfor %}</select>
+      <input name="offset" type="number" min="0" value="0" class="border rounded-lg px-2 py-2 w-20" aria-label="Minutes after first stop">
+      <button type="button" onclick="this.parentElement.remove()" class="text-red-600 px-2" aria-label="Remove stop">✕</button></div></template>
+</form>
+
+<form method="post" class="bg-white rounded-xl border p-4 mb-4 space-y-2 text-sm">
+  <input type="hidden" name="act" value="schedule">
+  <div class="font-semibold">Departure times from the first stop <span class="font-normal text-slate-500">(24-hour, one per line)</span></div>
+  <textarea name="times" rows="6" class="w-full border rounded-lg px-3 py-2 font-mono" placeholder="06:30&#10;07:00">{{ times }}</textarea>
+  <div class="flex gap-3 flex-wrap">{% for n, label in day_names.items() %}<label><input type="checkbox" name="days" value="{{ n }}" {% if n|string in days %}checked{% endif %}> {{ label }}</label>{% endfor %}</div>
+  <button class="bg-slate-900 text-white rounded-lg px-4 py-2">Save schedule</button>
+</form>
+
+<div class="flex gap-2 flex-wrap">
+  <form method="post"><input type="hidden" name="act" value="reverse"><button class="border rounded-lg px-3 py-2 bg-white text-sm">⇄ Create return route</button></form>
+  <form method="post" onsubmit="return confirm('Delete this route and its schedule?')"><input type="hidden" name="act" value="delete"><button class="border border-red-300 text-red-600 rounded-lg px-3 py-2 bg-white text-sm">Delete route</button></form>
+  <a class="border rounded-lg px-3 py-2 bg-white text-sm" href="{{ url_for('route_detail', route_id=r['id']) }}">View as student</a>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>$('addRow').onclick = () => $('rows').appendChild($('tpl').content.cloneNode(true));</script>
+{% endblock %}

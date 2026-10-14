@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<form method="post" class="max-w-sm mx-auto bg-white border rounded-xl p-6 space-y-3 mt-6">
+  <h1 class="text-xl font-bold">Transport admin</h1>
+  <label class="block text-sm">Password<input name="password" type="password" required class="w-full border rounded-lg px-3 py-2.5 mt-1" {% if demo %}value="admin123"{% endif %}></label>
+  <button class="w-full bg-slate-900 text-white py-2.5 rounded-lg font-medium">Log in</button>
+</form>
+{% endblock %}

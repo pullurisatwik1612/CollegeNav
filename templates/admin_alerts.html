@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "_admin_nav.html" %}
+<h1 class="text-xl font-bold mb-2">Notices</h1>
+<form method="post" class="bg-white rounded-xl border p-4 space-y-2 mb-4 text-sm">
+  <input type="hidden" name="act" value="add">
+  <div class="grid grid-cols-2 gap-2">
+    <select name="route_id" class="border rounded-lg px-2 py-2"><option value="">All routes</option>{% for r in routes %}<option value="{{ r['id'] }}">{{ r['code'] }} {{ r['name'] }}</option>{% endfor %}</select>
+    <select name="kind" class="border rounded-lg px-2 py-2">{% for k in kinds %}<option value="{{ k }}">{{ k }}</option>{% endfor %}</select>
+  </div>
+  <textarea name="message" required rows="2" maxlength="280" placeholder="e.g. R1 is delayed by 20 minutes due to a breakdown near LB Nagar." class="w-full border rounded-lg px-3 py-2"></textarea>
+  <div class="flex gap-2 items-center"><input name="hours" type="number" min="1" placeholder="Expires in (hours), optional" class="border rounded-lg px-3 py-2 flex-1">
+    <button class="bg-amber-400 font-bold rounded-lg px-4 py-2">Publish</button></div>
+</form>
+<div class="space-y-2">
+{% for a in rows %}
+  <div class="bg-white rounded-xl border p-3 text-sm {% if not a['active'] or (a['expires_ts'] and a['expires_ts'] < now) %}opacity-50{% endif %}">
+    <div class="flex justify-between"><div><b class="uppercase text-xs">{{ a['kind'] }}</b> · {{ a['route_code'] or 'All routes' }} · <span class="text-slate-500">{{ ago(a['created_ts']) }}</span>
+      {% if not a['active'] %}<span class="text-xs text-slate-500">(off)</span>{% elif a['expires_ts'] and a['expires_ts'] < now %}<span class="text-xs text-slate-500">(expired)</span>{% endif %}</div>
+      <form method="post" class="flex gap-2"><input type="hidden" name="id" value="{{ a['id'] }}">
+        {% if a['active'] %}<button name="act" value="off" class="text-xs border rounded px-2 py-0.5">Turn off</button>{% endif %}
+        <button name="act" value="delete" class="text-xs border border-red-300 text-red-600 rounded px-2 py-0.5">Delete</button></form></div>
+    <div class="mt-1">{{ a['message'] }}</div>
+  </div>
+{% endfor %}
+</div>
+{% endblock %}

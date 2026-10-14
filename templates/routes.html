@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_macros.html" import fresh_badge %}
+{% block content %}
+<h1 class="text-xl font-bold mb-3">All routes</h1>
+<div class="space-y-3">
+{% for x in rows %}
+  <a href="{{ url_for('route_detail', route_id=x.r['id']) }}" class="block bg-white rounded-xl shadow overflow-hidden {% if x.r['status']!='active' %}opacity-70{% endif %}">
+    <div class="h-1.5" style="background:{{ x.r['color'] }}"></div>
+    <div class="p-4">
+      <div class="flex justify-between items-center"><div><b>{{ x.r['code'] }}</b> <span class="text-slate-600">{{ x.r['name'] }}</span></div>
+        {% if x.r['status']!='active' %}<span class="text-xs bg-red-100 text-red-800 rounded-full px-2 py-0.5">Suspended</span>{% endif %}</div>
+      <div class="text-sm text-slate-500 mt-1">{{ x.first }} → {{ x.last }} · {{ x.n }} stops · {{ x.dur }} min</div>
+      <div class="text-sm text-slate-500">{{ x.trips }} trips, first {{ x.first_bus }}, last {{ x.last_bus }}</div>
+      <div class="mt-2">{{ fresh_badge(x.fresh) }}</div>
+    </div></a>
+{% else %}<p class="text-slate-500">No routes yet.</p>{% endfor %}
+</div>
+{% endblock %}

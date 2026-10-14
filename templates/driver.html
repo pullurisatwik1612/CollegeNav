@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-xl font-bold mb-1">Driver: share bus location</h1>
+<p class="text-sm text-slate-500 mb-3">Open this page on the driver's phone, choose the bus, enter the PIN given by the transport office and tap Start. Students then see the real position and arrival times.</p>
+<div class="bg-white rounded-xl shadow p-4 space-y-3">
+  <label class="block text-sm">Bus
+    <select id="bus" class="w-full border rounded-lg px-3 py-2.5 mt-1">{% for b in buses %}<option value="{{ b['id'] }}">{{ b['reg_no'] }}{% if b['code'] %} ({{ b['code'] }}){% endif %}</option>{% endfor %}</select></label>
+  <label class="block text-sm">PIN<input id="pin" type="password" inputmode="numeric" class="w-full border rounded-lg px-3 py-2.5 mt-1"></label>
+  <button id="go" class="w-full bg-emerald-600 text-white font-bold rounded-lg py-3">Start sharing</button>
+  <div id="st" class="text-sm text-slate-600">Not sharing.</div>
+  <div class="border-t pt-3">
+    <div class="text-xs text-slate-500 mb-1">No GPS handy? Send a test position from the route's first stop:</div>
+    <button id="test" class="text-sm border rounded-lg px-3 py-1.5">Send test location</button>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+let watch = null, lastSent = 0;
+async function send(lat, lng, speed){
+  const r = await fetch('/api/driver/location', {method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({bus_id: +$('bus').value, token: $('pin').value, lat, lng, speed})});
+  return r.ok ? null : (await r.json()).error;
+}
+$('go').onclick = () => {
+  if (watch !== null) { navigator.geolocation.clearWatch(watch); watch = null; $('go').textContent = 'Start sharing'; $('go').className = 'w-full bg-emerald-600 text-white font-bold rounded-lg py-3'; $('st').textContent = 'Stopped.'; return; }
+  if (!navigator.geolocation) { $('st').textContent = 'This browser cannot share location.'; return; }
+  watch = navigator.geolocation.watchPosition(async p => {
+    if (Date.now() - lastSent < 4000) return; lastSent = Date.now();
+    const err = await send(p.coords.latitude, p.coords.longitude, p.coords.speed);
+    $('st').textContent = err ? 'Error: ' + err : 'Sharing live location. Last sent ' + new Date().toLocaleTimeString();
+  }, e => { $('st').textContent = 'Location error: ' + e.message; }, {enableHighAccuracy: true, maximumAge: 2000});
+  $('go').textContent = 'Stop sharing'; $('go').className = 'w-full bg-red-600 text-white font-bold rounded-lg py-3';
+};
+$('test').onclick = async () => { const err = await send(17.3457, 78.5522, 0); $('st').textContent = err ? 'Error: ' + err : 'Test location sent (LB Nagar).'; };
+</script>
+{% endblock %}

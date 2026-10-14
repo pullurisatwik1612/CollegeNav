@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "_admin_nav.html" %}
+<h1 class="text-xl font-bold mb-2">Buses and drivers</h1>
+<p class="text-sm text-slate-500 mb-3">The PIN lets a driver share live GPS from the <a class="underline" href="{{ url_for('driver') }}">driver page</a>.</p>
+<form method="post" class="bg-white rounded-xl border p-4 grid grid-cols-2 gap-2 mb-4 text-sm">
+  <input type="hidden" name="act" value="add">
+  <input name="reg_no" required placeholder="Registration no." class="border rounded-lg px-3 py-2">
+  <input name="capacity" type="number" placeholder="Capacity" value="50" class="border rounded-lg px-3 py-2">
+  <input name="driver_name" placeholder="Driver name" class="border rounded-lg px-3 py-2">
+  <input name="token" placeholder="Driver PIN" class="border rounded-lg px-3 py-2">
+  <select name="route_id" class="border rounded-lg px-2 py-2 col-span-2"><option value="">No route yet</option>{% for r in routes %}<option value="{{ r['id'] }}">{{ r['code'] }} {{ r['name'] }}</option>{% endfor %}</select>
+  <button class="bg-slate-900 text-white rounded-lg py-2 col-span-2">Add bus</button>
+</form>
+<div class="space-y-2">
+{% for b in buses %}
+  <form method="post" class="bg-white rounded-xl border p-3 grid grid-cols-2 gap-2 text-sm">
+    <input type="hidden" name="id" value="{{ b['id'] }}">
+    <input name="reg_no" value="{{ b['reg_no'] }}" class="border rounded px-2 py-1.5">
+    <input name="capacity" type="number" value="{{ b['capacity'] }}" class="border rounded px-2 py-1.5">
+    <input name="driver_name" value="{{ b['driver_name'] or '' }}" placeholder="Driver" class="border rounded px-2 py-1.5">
+    <input name="token" value="{{ b['driver_token'] }}" class="border rounded px-2 py-1.5">
+    <select name="route_id" class="border rounded px-2 py-1.5 col-span-2"><option value="">No route</option>{% for r in routes %}<option value="{{ r['id'] }}" {% if r['id']==b['route_id'] %}selected{% endif %}>{{ r['code'] }} {{ r['name'] }}</option>{% endfor %}</select>
+    <div class="col-span-2 flex gap-2"><button name="act" value="save" class="bg-slate-900 text-white rounded px-3 py-1">Save</button>
+      <button name="act" value="delete" onclick="return confirm('Delete this bus?')" class="border border-red-300 text-red-600 rounded px-3 py-1">Delete</button></div>
+  </form>
+{% endfor %}
+</div>
+{% endblock %}

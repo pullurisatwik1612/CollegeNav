@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import fresh_badge %}
+{% block content %}
+{% include "_admin_nav.html" %}
+<div class="grid grid-cols-4 gap-2 text-center mb-4">
+  {% for k, v in counts.items() %}<div class="bg-white rounded-xl p-3 border"><div class="text-2xl font-bold">{{ v }}</div><div class="text-xs text-slate-500">{{ k }}</div></div>{% endfor %}
+</div>
+
+<div class="bg-white rounded-xl border p-4 mb-4">
+  <h2 class="font-semibold mb-2">Publish a notice</h2>
+  <a class="text-sm underline text-amber-700" href="{{ url_for('admin_alerts') }}">Open notices →</a>
+  <span class="text-xs text-slate-500 ml-2">Delays, cancellations and diversions reach students within seconds.</span>
+</div>
+
+<div class="bg-white rounded-xl border p-4 mb-4">
+  <h2 class="font-semibold mb-1">Live tracking mode</h2>
+  <p class="text-sm text-slate-500 mb-2">Real GPS from the <a class="underline" href="{{ url_for('driver') }}">driver page</a> is always used first ({{ gps }} bus{{ 'es' if gps != 1 }} sending GPS now). When there is no GPS, this setting decides what students see.</p>
+  <form method="post" action="{{ url_for('admin_sim') }}" class="flex gap-2 flex-wrap">
+    {% for m, label in [('loop', 'Demo loop (buses always moving)'), ('trips', 'Simulate from timetable'), ('off', 'Off (scheduled times only)')] %}
+    <button name="mode" value="{{ m }}" class="text-sm rounded-lg px-3 py-1.5 border {% if sim_mode == m %}bg-slate-900 text-white{% else %}bg-white{% endif %}">{{ label }}</button>{% endfor %}
+  </form>
+</div>
+
+<div class="bg-white rounded-xl border p-4">
+  <h2 class="font-semibold mb-2">Route data health</h2>
+  {% for r in routes %}<div class="flex justify-between items-center py-1.5 border-b last:border-0 text-sm">
+    <a class="underline" href="{{ url_for('admin_route', route_id=r['id']) }}">{{ r['code'] }} {{ r['name'] }}</a>{{ fresh_badge(fresh(r['last_verified'])) }}</div>{% endfor %}
+  {% if stale %}<p class="text-xs text-amber-700 mt-2">{{ stale|length }} route(s) need re-verification. Students see a warning on them.</p>{% endif %}
+</div>
+{% endblock %}
