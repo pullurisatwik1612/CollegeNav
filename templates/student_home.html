@@ -26,6 +26,30 @@
         <span>•</span>
         <span>Allocated Seat: <strong class="text-amber-400 font-bold">#{{ stu.seat_no or 'Unassigned' }}</strong></span>
       </div>
+
+      <!-- Demo Transit Duty Phase Switcher (For Testing & Judges) -->
+      <div class="flex items-center gap-2 mt-2 pt-2 border-t border-white/10 flex-wrap">
+        <span class="text-[11px] font-bold uppercase text-slate-400">Transit Phase:</span>
+        <div class="inline-flex rounded-xl bg-white/5 p-1 border border-white/10 gap-1 text-xs">
+          <a href="/student?phase=morning" class="px-2.5 py-1 rounded-lg transition-all font-semibold flex items-center gap-1.5 {% if demo_phase == 'morning' %}bg-amber-400 text-slate-950 font-bold shadow{% else %}text-slate-300 hover:text-white hover:bg-white/5{% endif %}">
+            <span>🌅</span>
+            <span>Morning Pickup (7:35 AM)</span>
+          </a>
+          <a href="/student?phase=classes" class="px-2.5 py-1 rounded-lg transition-all font-semibold flex items-center gap-1.5 {% if demo_phase == 'classes' or (demo_phase == 'auto' and commute_phase == 'classes') %}bg-blue-600 text-white font-bold shadow{% else %}text-slate-300 hover:text-white hover:bg-white/5{% endif %}">
+            <span>🏫</span>
+            <span>Midday Classes (11:55 AM)</span>
+          </a>
+          <a href="/student?phase=evening" class="px-2.5 py-1 rounded-lg transition-all font-semibold flex items-center gap-1.5 {% if demo_phase == 'evening' %}bg-emerald-600 text-white font-bold shadow{% else %}text-slate-300 hover:text-white hover:bg-white/5{% endif %}">
+            <span>🌇</span>
+            <span>Evening Return (4:35 PM)</span>
+          </a>
+          {% if demo_phase != 'auto' %}
+          <a href="/student?phase=auto" class="px-2 py-1 text-[11px] text-amber-400 hover:text-amber-300 font-bold underline">
+            Reset Auto
+          </a>
+          {% endif %}
+        </div>
+      </div>
     </div>
 
     <!-- Quick Action Buttons -->
@@ -108,18 +132,43 @@
       </div>
 
       <!-- Live Commute Status Box -->
-      <div class="rounded-2xl p-4 sm:p-5 border transition-all {% if stop_status == 'approaching' %}bg-emerald-950/40 border-emerald-500/40 glow-emerald{% elif stop_status == 'passed' %}bg-rose-950/40 border-rose-500/30 glow-rose{% else %}bg-slate-900/60 border-white/10{% endif %}">
+      <div class="rounded-2xl p-4 sm:p-5 border transition-all {% if status_badge_color == 'emerald' %}bg-emerald-950/40 border-emerald-500/40 glow-emerald{% elif status_badge_color == 'blue' %}bg-blue-950/40 border-blue-500/40{% elif status_badge_color == 'amber' %}bg-amber-950/40 border-amber-500/40 glow-amber{% elif status_badge_color == 'rose' %}bg-rose-950/40 border-rose-500/30 glow-rose{% else %}bg-slate-900/60 border-white/10{% endif %}">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           
           <div class="flex items-start sm:items-center gap-3.5">
-            {% if stop_status == 'approaching' %}
+            {% if commute_phase == 'classes' %}
+              <!-- Midday: College Classes in Session -->
+              <div class="w-11 h-11 rounded-2xl bg-blue-500/20 text-blue-400 border border-blue-500/40 flex items-center justify-center text-2xl shrink-0">
+                🎓
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold uppercase tracking-wider text-blue-300">College Classes in Session</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-400/20 text-blue-300 border border-blue-400/30 font-bold">
+                    Morning Run Completed
+                  </span>
+                </div>
+                <div class="text-base sm:text-lg font-extrabold text-white font-display mt-0.5">
+                  {{ status_headline }}
+                </div>
+                <div class="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                  {{ status_desc }}
+                </div>
+                <div class="mt-2.5 inline-flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 text-xs">
+                  <span class="text-amber-400 font-bold">Next Service:</span>
+                  <span class="text-white">Evening Return Bus departs Campus at <strong>{{ evening_depart_time }}</strong> (Drop-off at {{ stu.stop_name }} at <strong>{{ evening_drop_time }}</strong>)</span>
+                </div>
+              </div>
+
+            {% elif stop_status == 'approaching' or stop_status == 'evening_approaching' %}
+              <!-- Bus approaching stop -->
               <div class="relative flex h-5 w-5 shrink-0 mt-0.5 sm:mt-0">
                 <span class="radar-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-5 w-5 bg-emerald-500"></span>
               </div>
               <div>
                 <div class="flex items-center gap-2">
-                  <span class="text-xs font-bold uppercase tracking-wider text-emerald-300">Approaching Your Stop</span>
+                  <span class="text-xs font-bold uppercase tracking-wider text-emerald-300">{{ status_badge }}</span>
                   {% if stops_away is not none %}
                     <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 font-bold">
                       {% if stops_away == 0 %}Arriving Now!{% elif stops_away == 1 %}Next Stop is Yours{% else %}{{ stops_away }} stops away{% endif %}
@@ -127,37 +176,42 @@
                   {% endif %}
                 </div>
                 <div class="text-lg sm:text-xl font-extrabold text-white font-display mt-0.5">
-                  Bus is approximately <span class="text-emerald-400 underline decoration-emerald-500/50">~{{ eta_min }} min</span> away from {{ stu.stop_name }}
+                  Bus is about <span class="text-emerald-400 underline decoration-emerald-500/50">~{{ eta_min }} min</span> away from {{ stu.stop_name }}
                 </div>
-                {% if current_stop_name %}
                 <div class="text-xs text-emerald-200/80 mt-0.5">
-                  Current Location: Near <strong>{{ current_stop_name }}</strong>
+                  {{ status_desc }}
                 </div>
-                {% endif %}
               </div>
-            {% elif stop_status == 'passed' %}
+
+            {% elif stop_status == 'passed' or stop_status == 'evening_passed' %}
+              <!-- Bus already departed stop -->
               <div class="text-2xl shrink-0">🔴</div>
               <div>
-                <div class="text-xs font-bold uppercase tracking-wider text-rose-300">Already Passed Your Stop</div>
+                <div class="text-xs font-bold uppercase tracking-wider text-rose-300">{{ status_badge }}</div>
                 <div class="text-sm sm:text-base font-bold text-rose-100 mt-0.5">
-                  Your bus has already departed {{ stu.stop_name }} and is heading towards college.
+                  {{ status_headline }}
+                </div>
+                <div class="text-xs text-rose-200/80 mt-1">
+                  {{ status_desc }}
                 </div>
                 <div class="text-xs text-rose-200/80 mt-1 flex items-center gap-2">
-                  <span>Missed it? Tap the assistant below for alternative buses:</span>
+                  <span>Need transit help?</span>
                   <button type="button" onclick="openModal('missed-bus-modal')" class="text-xs underline font-bold text-amber-300 hover:text-white">
                     Alternative Transit Options →
                   </button>
                 </div>
               </div>
+
             {% else %}
+              <!-- General status / night / scheduled -->
               <div class="text-2xl shrink-0">⏱️</div>
               <div>
-                <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Scheduled Service Mode</div>
+                <div class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ status_badge }}</div>
                 <div class="text-sm sm:text-base font-bold text-slate-200 mt-0.5">
-                  {{ live.message if live.message else 'Trip departing according to scheduled timetable.' }}
+                  {{ status_headline }}
                 </div>
                 <div class="text-xs text-slate-400 mt-0.5">
-                  Live GPS beacon connects automatically once driver starts trip.
+                  {{ status_desc }}
                 </div>
               </div>
             {% endif %}
@@ -507,31 +561,52 @@
     <div id="student-map" class="h-72 sm:h-80 w-full rounded-xl overflow-hidden border border-white/10 relative"></div>
   </div>
 
-  <!-- ==================== 6. TODAY'S SCHEDULED TIMETABLE ==================== -->
-  {% if deps %}
-  <div class="glass-card rounded-2xl p-4 sm:p-5 border border-white/10 space-y-3">
-    <div class="flex items-center justify-between">
-      <div>
-        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">
-          Timetable Departures for {{ stu.stop_name }}
-        </h3>
-        <div class="text-[11px] text-slate-400">Scheduled trip slots passing your pickup stop today</div>
-      </div>
-      <span class="text-[11px] text-amber-400 font-mono">Route {{ stu.route_code }}</span>
-    </div>
-    
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-      {% for x in deps %}
-      <div class="rounded-xl p-3 border text-center transition-all {% if loop.first %}bg-amber-400/15 border-amber-400/30 text-amber-300 glow-amber{% else %}bg-white/5 border-white/10 text-slate-300{% endif %}">
-        <div class="text-base sm:text-lg font-extrabold font-display text-white">{{ x.clock }}</div>
-        <div class="text-[11px] text-slate-400 mt-0.5">
-          {% if x.wait < 60 %}in {{ x.wait }}m{% else %}in {{ (x.wait // 60) }}h {{ x.wait % 60 }}m{% endif %}
+  <!-- ==================== 6. OFFICIAL COMMUTE SCHEDULE ==================== -->
+  <div class="glass-card rounded-2xl p-4 sm:p-5 border border-white/10 space-y-4 shadow-xl">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/10">
+      <div class="flex items-center gap-2.5">
+        <span class="text-lg">📅</span>
+        <div>
+          <h3 class="text-sm font-bold uppercase tracking-wider text-white font-display">
+            Official Commute Schedule for {{ stu.stop_name }}
+          </h3>
+          <div class="text-[11px] text-slate-400">Designated Runs: Route {{ stu.route_code }} • Bus {{ stu.bus_reg }}</div>
         </div>
+      </div>
+      <div class="text-xs font-mono text-amber-300 bg-amber-400/10 px-2.5 py-1 rounded-lg border border-amber-400/20 self-start sm:self-auto">
+        Clock: <strong>{{ now_clock_str }}</strong>
+      </div>
+    </div>
+
+    <!-- 3 Real Transit Duty Runs -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+      {% for trip in daily_trips %}
+      <div class="p-4 rounded-xl border transition-all flex flex-col justify-between gap-3 {% if trip.badge_color == 'emerald' %}bg-emerald-950/30 border-emerald-500/40 glow-emerald{% elif trip.badge_color == 'amber' %}bg-amber-950/30 border-amber-500/40 glow-amber{% else %}bg-white/5 border-white/10 text-slate-300{% endif %}">
+        
+        <div>
+          <div class="flex items-center justify-between">
+            <span class="text-xl">{{ trip.icon }}</span>
+            <span class="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full {% if trip.badge_color == 'emerald' %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% elif trip.badge_color == 'amber' %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% else %}bg-white/10 text-slate-400 border border-white/10{% endif %}">
+              {{ trip.badge }}
+            </span>
+          </div>
+
+          <div class="mt-2.5">
+            <div class="text-xs font-bold text-slate-300">{{ trip.title }}</div>
+            <div class="text-xl font-extrabold font-display text-white mt-0.5">{{ trip.time }}</div>
+            <div class="text-[11px] text-slate-300 mt-0.5 leading-snug">{{ trip.sub }}</div>
+          </div>
+        </div>
+
+        <div class="text-[11px] text-slate-400 pt-2 border-t border-white/10 font-mono flex items-center justify-between">
+          <span>Status:</span>
+          <span class="text-white font-semibold">{{ trip.timing_note }}</span>
+        </div>
+
       </div>
       {% endfor %}
     </div>
   </div>
-  {% endif %}
 
 </div>
 
