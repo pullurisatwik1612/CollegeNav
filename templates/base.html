@@ -1,80 +1,212 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0f172a">
-<title>{% block title %}{{ app_name }}{% endblock %}</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
-<style>
- .bus-icon{font-size:26px;line-height:30px;text-align:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
- body{padding-bottom:76px}
- .dot{display:inline-block;width:12px;height:12px;border-radius:50%}
-</style>
-</head>
-<body class="bg-slate-100 text-slate-800">
-<header class="bg-slate-900 text-white sticky top-0 z-30">
-  <div class="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
-    <a href="/" class="font-extrabold text-lg tracking-tight">🚌 <span class="text-amber-400">{{ app_name }}</span></a>
-    <span class="text-xs text-slate-400 truncate flex-1">{{ college }}</span>
-    <button id="bell" class="text-lg" title="Turn on alert notifications" aria-label="Turn on alert notifications">🔔</button>
-    {% if is_admin %}<a href="{{ url_for('admin_home') }}" class="text-xs bg-amber-400 text-slate-900 rounded px-2 py-1 font-semibold">Admin</a>
-    {% else %}<a href="{{ url_for('admin_login') }}" class="text-xs text-slate-400 underline">Admin</a>{% endif %}
-  </div>
-</header>
-
-<main class="max-w-3xl mx-auto px-4 py-4">
-  {% with msgs = get_flashed_messages(with_categories=true) %}
-    {% for cat, m in msgs %}<div class="mb-3 px-4 py-2 rounded border text-sm {% if cat=='ok' %}bg-green-50 border-green-300 text-green-800{% else %}bg-amber-50 border-amber-300 text-amber-900{% endif %}">{{ m }}</div>{% endfor %}
-  {% endwith %}
-  {% block content %}{% endblock %}
-  {% if demo %}<p class="text-center text-xs text-slate-400 mt-8">Demo data. Real routes are managed in Admin.</p>{% endif %}
-</main>
-
-<nav class="fixed bottom-0 inset-x-0 bg-white border-t z-30">
-  <div class="max-w-3xl mx-auto grid grid-cols-4 text-center text-xs">
-    <a href="/" class="py-2.5 {% if request.path=='/' %}text-amber-600 font-bold{% else %}text-slate-600{% endif %}"><div class="text-xl">🔎</div>Plan</a>
-    <a href="{{ url_for('routes_list') }}" class="py-2.5 {% if request.path.startswith('/routes') %}text-amber-600 font-bold{% else %}text-slate-600{% endif %}"><div class="text-xl">🛣️</div>Routes</a>
-    <a href="{{ url_for('live_map') }}" class="py-2.5 {% if request.path=='/map' %}text-amber-600 font-bold{% else %}text-slate-600{% endif %}"><div class="text-xl">📍</div>Live map</a>
-    <a href="{{ url_for('alerts_page') }}" class="py-2.5 relative {% if request.path=='/alerts' %}text-amber-600 font-bold{% else %}text-slate-600{% endif %}"><div class="text-xl">📢</div>Notices
-      {% if alert_count %}<span class="absolute top-1 right-[28%] bg-red-600 text-white rounded-full text-[10px] px-1.5">{{ alert_count }}</span>{% endif %}</a>
-  </div>
-</nav>
-<div id="toasts" class="fixed top-16 inset-x-0 z-40 flex flex-col items-center gap-2 px-4 pointer-events-none"></div>
-
-<script>
-const $ = id => document.getElementById(id);
-function toast(msg){
-  const d = document.createElement('div');
-  d.className = 'pointer-events-auto max-w-md w-full bg-slate-900 text-white text-sm rounded-lg shadow-xl px-4 py-3 border-l-4 border-amber-400';
-  d.textContent = msg; $('toasts').appendChild(d); setTimeout(() => d.remove(), 9000);
-}
-$('bell').onclick = async () => {
-  if (!('Notification' in window)) { toast('Notifications are not supported on this browser.'); return; }
-  const p = await Notification.requestPermission();
-  toast(p === 'granted' ? 'Alerts on. You will be notified about delays and changes.' : 'Notifications blocked. In-app alerts will still appear.');
-};
-async function pollAlerts(){
-  try {
-    const d = await (await fetch('/api/alerts')).json();
-    const maxId = d.alerts.reduce((m, a) => Math.max(m, a.id), 0);
-    let last = localStorage.getItem('lastAlert');
-    if (last === null) { localStorage.setItem('lastAlert', maxId); return; }
-    last = +last;
-    const subs = JSON.parse(localStorage.getItem('subs') || '[]');
-    d.alerts.filter(a => a.id > last).reverse().forEach(a => {
-      if (!a.route_id || !subs.length || subs.includes(a.route_id)) {
-        const t = (a.route_code ? a.route_code + ': ' : '') + a.message;
-        toast('New notice: ' + t);
-        if ('Notification' in window && Notification.permission === 'granted') new Notification('{{ app_name }}', {body: t});
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#060913">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚌</text></svg>">
+  <title>{% block title %}{{ app_name }}{% endblock %} • Campus Transit</title>
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+            },
+            transit: {
+              card: 'rgba(15, 23, 42, 0.7)',
+              border: 'rgba(255, 255, 255, 0.08)',
+              navy: '#070b14',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            display: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+          }
+        }
       }
-    });
-    localStorage.setItem('lastAlert', Math.max(last, maxId));
-  } catch (e) {}
-}
-setInterval(pollAlerts, 15000); pollAlerts();
-</script>
-{% block scripts %}{% endblock %}
+    }
+  </script>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+  
+  <!-- Custom Design System -->
+  <link rel="stylesheet" href="/static/app.css">
+  
+  <style>
+    .bus-icon { font-size: 26px; line-height: 30px; text-align: center; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); }
+    body { padding-bottom: 96px; }
+  </style>
+</head>
+<body class="bg-[#060913] text-slate-100 min-h-screen selection:bg-amber-500/30 selection:text-amber-300">
+
+  <!-- Ambient Light Accents for Night Transit Aesthetic -->
+  <div class="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-96 bg-gradient-to-b from-indigo-900/20 via-amber-500/5 to-transparent pointer-events-none blur-3xl -z-10"></div>
+  <div class="fixed top-36 -left-32 w-72 h-72 bg-blue-600/10 pointer-events-none rounded-full blur-3xl -z-10"></div>
+  <div class="fixed top-48 -right-32 w-72 h-72 bg-amber-500/10 pointer-events-none rounded-full blur-3xl -z-10"></div>
+
+  <!-- Header -->
+  <header class="sticky top-0 z-30 backdrop-blur-xl bg-[#060913]/85 border-b border-white/10 transition-all">
+    <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <a href="/" class="flex items-center gap-2 group shrink-0">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-lg shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform">
+            🚌
+          </div>
+          <div>
+            <div class="font-extrabold text-base tracking-tight font-display flex items-center gap-1">
+              <span class="text-white">College</span><span class="text-amber-400">Nav</span>
+            </div>
+          </div>
+        </a>
+        <div class="h-4 w-px bg-white/10 shrink-0"></div>
+        <span class="text-xs text-slate-400 font-medium truncate shrink-1">{{ college }}</span>
+      </div>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="bell" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-amber-400 hover:bg-white/5 border border-transparent hover:border-white/10 transition-all text-sm btn-press" title="Turn on alert notifications" aria-label="Turn on alert notifications">
+          🔔
+        </button>
+        {% if is_admin %}
+          <a href="{{ url_for('admin_home') }}" class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-amber-400 text-slate-950 hover:bg-amber-300 transition-colors shadow-sm">
+            Admin
+          </a>
+        {% else %}
+          <a href="{{ url_for('admin_login') }}" class="text-xs font-medium px-2.5 py-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all">
+            Admin
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Viewport -->
+  <main class="max-w-3xl mx-auto px-4 py-5">
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% for cat, m in msgs %}
+        <div class="mb-4 px-4 py-3 rounded-xl border text-sm flex items-center gap-2.5 backdrop-blur-md {% if cat=='ok' %}bg-emerald-950/50 border-emerald-500/30 text-emerald-200{% else %}bg-amber-950/50 border-amber-500/30 text-amber-200{% endif %} shadow-lg">
+          <span>{% if cat=='ok' %}✅{% else %}⚠️{% endif %}</span>
+          <div class="flex-1">{{ m }}</div>
+        </div>
+      {% endfor %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+
+    {% if demo %}
+      <div class="text-center mt-12 mb-4">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-900/60 border border-white/5 text-slate-400 backdrop-blur-sm">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+          Simulated demo environment • Real fleet routes managed in Admin
+        </span>
+      </div>
+    {% endif %}
+  </main>
+
+  <!-- Floating Glass Bottom Navigation -->
+  <nav class="fixed bottom-3 inset-x-0 mx-auto max-w-md px-3 z-40">
+    <div class="glass-nav rounded-2xl p-1.5 shadow-2xl backdrop-blur-2xl grid grid-cols-4 gap-1 text-center text-xs">
+      
+      <!-- Tab 1: Plan -->
+      <a href="/" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all btn-press {% if request.path=='/' %}bg-amber-400/15 text-amber-400 font-bold border border-amber-400/30 shadow-inner{% else %}text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent{% endif %}">
+        <span class="text-lg leading-none mb-1">🔎</span>
+        <span class="tracking-tight text-[11px]">Plan</span>
+      </a>
+
+      <!-- Tab 2: Routes -->
+      <a href="{{ url_for('routes_list') }}" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all btn-press {% if request.path.startswith('/routes') %}bg-amber-400/15 text-amber-400 font-bold border border-amber-400/30 shadow-inner{% else %}text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent{% endif %}">
+        <span class="text-lg leading-none mb-1">🛣️</span>
+        <span class="tracking-tight text-[11px]">Routes</span>
+      </a>
+
+      <!-- Tab 3: Live Map -->
+      <a href="{{ url_for('live_map') }}" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all btn-press {% if request.path=='/map' %}bg-amber-400/15 text-amber-400 font-bold border border-amber-400/30 shadow-inner{% else %}text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent{% endif %}">
+        <span class="text-lg leading-none mb-1">📍</span>
+        <span class="tracking-tight text-[11px]">Live map</span>
+      </a>
+
+      <!-- Tab 4: Notices -->
+      <a href="{{ url_for('alerts_page') }}" class="relative flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all btn-press {% if request.path=='/alerts' %}bg-amber-400/15 text-amber-400 font-bold border border-amber-400/30 shadow-inner{% else %}text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent{% endif %}">
+        <span class="text-lg leading-none mb-1">📢</span>
+        <span class="tracking-tight text-[11px]">Notices</span>
+        {% if alert_count %}
+          <span class="absolute top-1.5 right-3 w-4 h-4 flex items-center justify-center bg-rose-600 text-white font-bold text-[9px] rounded-full shadow-lg shadow-rose-600/40 animate-pulse">
+            {{ alert_count }}
+          </span>
+        {% endif %}
+      </a>
+      
+    </div>
+  </nav>
+
+  <!-- Interactive Toast Notification Center -->
+  <div id="toasts" class="fixed top-16 inset-x-0 z-50 flex flex-col items-center gap-2.5 px-4 pointer-events-none"></div>
+
+  <!-- Shared App Logic & Alerts Polling -->
+  <script>
+    const $ = id => document.getElementById(id);
+    
+    function toast(msg) {
+      const d = document.createElement('div');
+      d.className = 'pointer-events-auto max-w-md w-full bg-slate-900/90 backdrop-blur-xl text-slate-100 text-sm rounded-xl shadow-2xl p-3.5 border border-white/10 border-l-4 border-l-amber-400 flex items-start gap-3 transition-all duration-300 transform translate-y-0 opacity-100';
+      d.innerHTML = `
+        <span class="text-amber-400 text-base">🔔</span>
+        <div class="flex-1 leading-snug">${msg}</div>
+        <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white text-xs px-1">✕</button>
+      `;
+      $('toasts').appendChild(d);
+      setTimeout(() => {
+        d.style.opacity = '0';
+        d.style.transform = 'translateY(-8px)';
+        setTimeout(() => d.remove(), 300);
+      }, 7000);
+    }
+
+    $('bell').onclick = async () => {
+      if (!('Notification' in window)) {
+        toast('Push notifications are not supported on this browser.');
+        return;
+      }
+      const p = await Notification.requestPermission();
+      toast(p === 'granted' ? 'Alerts active! You will be notified about route changes and delays.' : 'Notifications blocked. In-app alerts will still appear.');
+    };
+
+    async function pollAlerts() {
+      try {
+        const d = await (await fetch('/api/alerts')).json();
+        const maxId = d.alerts.reduce((m, a) => Math.max(m, a.id), 0);
+        let last = localStorage.getItem('lastAlert');
+        if (last === null) {
+          localStorage.setItem('lastAlert', maxId);
+          return;
+        }
+        last = +last;
+        const subs = JSON.parse(localStorage.getItem('subs') || '[]');
+        d.alerts.filter(a => a.id > last).reverse().forEach(a => {
+          if (!a.route_id || !subs.length || subs.includes(a.route_id)) {
+            const t = (a.route_code ? a.route_code + ': ' : '') + a.message;
+            toast('Notice: ' + t);
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification('{{ app_name }}', { body: t });
+            }
+          }
+        });
+        localStorage.setItem('lastAlert', Math.max(last, maxId));
+      } catch (e) {}
+    }
+    
+    setInterval(pollAlerts, 15000);
+    pollAlerts();
+  </script>
+
+  {% block scripts %}{% endblock %}
 </body>
 </html>
