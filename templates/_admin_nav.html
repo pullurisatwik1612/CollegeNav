@@ -1,6 +1,18 @@
-<div class="flex gap-2 text-sm mb-4 overflow-x-auto">
-  {% for href, label in [(url_for('admin_home'), 'Overview'), (url_for('admin_routes'), 'Routes'), (url_for('admin_stops'), 'Stops'), (url_for('admin_buses'), 'Buses'), (url_for('admin_alerts'), 'Notices')] %}
-  <a href="{{ href }}" class="px-3 py-1.5 rounded-full whitespace-nowrap {% if request.path == href or (href != url_for('admin_home') and request.path.startswith(href)) %}bg-slate-900 text-white{% else %}bg-white border{% endif %}">{{ label }}</a>
+<div class="flex gap-2 text-xs font-semibold mb-5 overflow-x-auto pb-1">
+  {% for href, label, icon in [
+    (url_for('admin_home'), 'Overview', '📊'),
+    (url_for('admin_allocations'), 'Allocations', '👥'),
+    (url_for('admin_routes'), 'Routes', '🛣️'),
+    (url_for('admin_stops'), 'Stops', '🚏'),
+    (url_for('admin_buses'), 'Buses', '🚌'),
+    (url_for('admin_alerts'), 'Notices', '📢')
+  ] %}
+  <a href="{{ href }}" class="px-3.5 py-1.5 rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 {% if request.path == href or (href != url_for('admin_home') and request.path.startswith(href)) %}bg-amber-400 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}bg-slate-900/60 hover:bg-slate-800 text-slate-300 border border-white/10{% endif %}">
+    <span>{{ icon }}</span>
+    <span>{{ label }}</span>
+  </a>
   {% endfor %}
-  <a href="{{ url_for('admin_logout') }}" class="px-3 py-1.5 rounded-full bg-white border ml-auto whitespace-nowrap">Log out</a>
+  <a href="{{ url_for('logout') }}" class="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10 ml-auto whitespace-nowrap transition-colors">
+    Sign out
+  </a>
 </div>

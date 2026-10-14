@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}Fleet & Student Allocations • Admin • {{ app_name }}{% endblock %}
+
+{% block content %}
+{% include "_admin_nav.html" %}
+
+<div class="space-y-6">
+
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-white/10">
+    <div>
+      <h1 class="text-xl sm:text-2xl font-extrabold font-display text-white">
+        Fleet Allocations & Rosters
+      </h1>
+      <p class="text-xs text-slate-400">
+        Monitor bus seat capacities (max 50/bus) and assign students to routes.
+      </p>
+    </div>
+
+    <!-- Quick Stats Metric -->
+    <div class="flex items-center gap-2">
+      <span class="text-xs font-bold px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-300">
+        Total Students: <b class="text-white">{{ total_students }}</b>
+      </span>
+      {% if unallocated_count > 0 %}
+      <a href="/admin/allocations?bus=unallocated" class="text-xs font-bold px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition-colors">
+        ⚠️ {{ unallocated_count }} Unallocated
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- 10 Buses Capacity Utilization Grid -->
+  <div>
+    <div class="flex items-center justify-between mb-2.5">
+      <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">
+        10 Campus Fleet Buses (Max 50 Seats Each)
+      </h2>
+      <a href="/admin/allocations" class="text-xs text-amber-400 hover:underline">
+        Show all buses
+      </a>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2.5">
+      {% for b in buses %}
+      {% set pct = (b.student_count * 100 // max_cap) %}
+      <a href="/admin/allocations?bus={{ b.id }}" class="glass-card p-3 rounded-xl border transition-all block {% if bus_filter == b.id|string %}border-amber-400 bg-amber-400/10 shadow-lg{% else %}border-white/10 hover:border-white/25{% endif %}">
+        <div class="flex items-center justify-between text-xs">
+          <span class="font-bold text-white">{{ b.reg_no }}</span>
+          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded text-white" style="background: {{ b.route_color or '#2563eb' }};">
+            {{ b.route_code }}
+          </span>
+        </div>
+        
+        <div class="text-[11px] text-slate-400 truncate mt-0.5">{{ b.driver_name }}</div>
+
+        <!-- Occupancy Bar -->
+        <div class="mt-2 space-y-1">
+          <div class="flex justify-between text-[11px] font-bold">
+            <span class="{% if b.student_count >= max_cap %}text-rose-400{% elif b.student_count >= 45 %}text-amber-300{% else %}text-emerald-400{% endif %}">
+              {{ b.student_count }} / {{ max_cap }}
+            </span>
+            <span class="text-[10px] text-slate-400">{{ pct }}%</span>
+          </div>
+          
+          <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+            <div class="h-full rounded-full transition-all {% if b.student_count >= max_cap %}bg-rose-500{% elif b.student_count >= 45 %}bg-amber-400{% else %}bg-emerald-500{% endif %}" style="width: {{ pct }}%;"></div>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Filters & Student Search Bar -->
+  <div class="glass-panel rounded-2xl p-4 border border-white/10">
+    <form method="get" action="/admin/allocations" class="flex flex-col sm:flex-row gap-2.5">
+      
+      <!-- Search Input -->
+      <div class="flex-1 relative">
+        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 text-sm">🔍</span>
+        <input 
+          type="text" 
+          name="q" 
+          value="{{ search_q }}" 
+          placeholder="Search by student name or roll number (e.g. 23CS101)..." 
+          class="glass-input w-full rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-white placeholder-slate-500"
+        >
+      </div>
+
+      <!-- Bus Filter Dropdown -->
+      <div class="sm:w-56">
+        <select name="bus" onchange="this.form.submit()" class="glass-input w-full rounded-xl px-3 py-2 text-xs sm:text-sm text-white bg-slate-900">
+          <option value="">All Fleet Buses</option>
+          <option value="unallocated" {% if bus_filter == 'unallocated' %}selected{% endif %}>⚠️ Unallocated Students Only ({{ unallocated_count }})</option>
+          {% for b in buses %}
+          <option value="{{ b.id }}" {% if bus_filter == b.id|string %}selected{% endif %}>
+            {{ b.reg_no }} ({{ b.route_code }}) • {{ b.student_count }}/50
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Submit / Filter -->
+      <button type="submit" class="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs sm:text-sm shrink-0 btn-press">
+        Filter
+      </button>
+
+      {% if search_q or bus_filter %}
+      <a href="/admin/allocations" class="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs flex items-center justify-center border border-white/10">
+        Clear
+      </a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Student Allocation Table -->
+  <div class="glass-card rounded-2xl overflow-hidden border border-white/10">
+    <div class="p-4 border-b border-white/10 flex items-center justify-between">
+      <h3 class="text-sm font-bold text-white flex items-center gap-2">
+        <span>🎓 Student Roster</span>
+        <span class="text-xs text-slate-400 font-normal">({{ students|length }} records shown)</span>
+      </h3>
+      <span class="text-[11px] text-slate-400">Click "Reassign" to modify bus or stop</span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs">
+        <thead class="bg-slate-900/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-white/10">
+          <tr>
+            <th class="py-3 px-4">Roll No</th>
+            <th class="py-3 px-4">Student Name</th>
+            <th class="py-3 px-4">Assigned Bus</th>
+            <th class="py-3 px-4">Route</th>
+            <th class="py-3 px-4">Pickup Stop</th>
+            <th class="py-3 px-4">Seat</th>
+            <th class="py-3 px-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-white/5 text-slate-200">
+          {% for s in students %}
+          <tr class="hover:bg-white/5 transition-colors">
+            <td class="py-3 px-4 font-mono font-bold text-amber-300">
+              {{ s.roll_no }}
+              {% if s.is_demo %}
+              <span class="ml-1 text-[9px] bg-amber-400/20 text-amber-300 px-1 py-0.5 rounded">DEMO</span>
+              {% endif %}
+            </td>
+            
+            <td class="py-3 px-4 font-medium text-white">
+              {{ s.name }}
+              {% if s.not_travelling_date %}
+              <span class="block text-[10px] text-rose-400">🚫 Not travelling today</span>
+              {% endif %}
+            </td>
+
+            <td class="py-3 px-4">
+              {% if s.bus_reg %}
+                <span class="font-bold text-slate-100">{{ s.bus_reg }}</span>
+              {% else %}
+                <span class="text-amber-400 font-bold bg-amber-400/10 px-2 py-0.5 rounded">Unallocated</span>
+              {% endif %}
+            </td>
+
+            <td class="py-3 px-4">
+              {% if s.route_code %}
+                <span class="font-bold text-xs">{{ s.route_code }}</span>
+              {% else %}
+                <span class="text-slate-500">—</span>
+              {% endif %}
+            </td>
+
+            <td class="py-3 px-4 text-slate-300">
+              {{ s.stop_name or '—' }}
+            </td>
+
+            <td class="py-3 px-4 font-mono font-semibold">
+              {% if s.seat_no %}
+                #{{ s.seat_no }}
+              {% else %}
+                <span class="text-slate-500">—</span>
+              {% endif %}
+            </td>
+
+            <td class="py-3 px-4 text-right">
+              <button 
+                type="button" 
+                onclick="openReassignModal({{ s.id }}, '{{ s.name }}', '{{ s.roll_no }}', '{{ s.bus_id or '' }}', '{{ s.stop_id or '' }}')" 
+                class="px-2.5 py-1 rounded-lg bg-amber-400/15 hover:bg-amber-400/30 text-amber-300 border border-amber-400/30 text-[11px] font-bold transition-all btn-press"
+              >
+                Reassign
+              </button>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="py-8 text-center text-slate-400">
+              No students match the selected filter criteria.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Allocation Audit History / Logs -->
+  {% if logs %}
+  <div class="glass-card rounded-2xl p-4 sm:p-5 border border-white/10 space-y-3">
+    <div class="flex items-center justify-between">
+      <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">
+        Recent Allocation Activity Log
+      </h3>
+      <span class="text-[11px] text-slate-500">Audit trail</span>
+    </div>
+
+    <div class="divide-y divide-white/5 text-xs">
+      {% for l in logs %}
+      <div class="py-2.5 flex items-center justify-between gap-3">
+        <div>
+          <span class="font-bold text-white">{{ l.student_name }}</span>
+          <span class="text-slate-400">moved from</span>
+          <span class="font-mono text-slate-300 font-semibold">{{ l.from_bus }}</span>
+          <span class="text-slate-400">→</span>
+          <span class="font-mono text-amber-300 font-semibold">{{ l.to_bus }}</span>
+          <div class="text-[10px] text-slate-500">{{ l.reason }}</div>
+        </div>
+        <span class="text-[10px] text-slate-400 shrink-0 font-mono">{{ clock(l.created_ts // 60) }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Reassignment Modal -->
+<div id="reassign-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+  <div class="glass-panel max-w-md w-full rounded-2xl p-5 border border-white/15 shadow-2xl space-y-4">
+    <div class="flex items-center justify-between border-b border-white/10 pb-3">
+      <h3 class="text-sm sm:text-base font-extrabold text-white font-display">
+        Reallocate Student to Bus
+      </h3>
+      <button type="button" onclick="closeReassignModal()" class="text-slate-400 hover:text-white text-sm">✕</button>
+    </div>
+
+    <form method="post" action="/admin/allocations/reassign" class="space-y-3.5">
+      <input type="hidden" id="modal-student-id" name="student_id">
+
+      <div>
+        <div class="text-[11px] font-bold uppercase text-slate-400">Student</div>
+        <div id="modal-student-info" class="text-sm font-bold text-white"></div>
+      </div>
+
+      <!-- Target Bus Selector -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1">
+          Target Bus (Max 50 Capacity)
+        </label>
+        <select id="modal-bus-select" name="new_bus_id" required class="glass-input w-full rounded-xl px-3 py-2 text-xs sm:text-sm text-white bg-slate-900">
+          <option value="none">⚠️ Unallocated (Remove from Bus)</option>
+          {% for b in buses %}
+          <option value="{{ b.id }}">
+            {{ b.reg_no }} ({{ b.route_code }} - {{ b.route_name }}) • {{ b.student_count }}/50 Seats
+          </option>
+          {% endfor %}
+        </select>
+        <p class="text-[10px] text-slate-400 mt-1">Allocation automatically enforces the strict 50-passenger limit.</p>
+      </div>
+
+      <!-- Target Pickup Stop -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1">
+          Designated Pickup Stop
+        </label>
+        <select id="modal-stop-select" name="new_stop_id" class="glass-input w-full rounded-xl px-3 py-2 text-xs sm:text-sm text-white bg-slate-900">
+          <option value="">(Keep current stop)</option>
+          {% for st in all_stops %}
+          <option value="{{ st.id }}">{{ st.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Reason for Log -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1">
+          Allocation Reason / Note
+        </label>
+        <input 
+          type="text" 
+          name="reason" 
+          value="Administrative Route Optimization" 
+          class="glass-input w-full rounded-xl px-3 py-2 text-xs text-white"
+        >
+      </div>
+
+      <div class="pt-2 flex justify-end gap-2">
+        <button type="button" onclick="closeReassignModal()" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold">
+          Cancel
+        </button>
+        <button type="submit" class="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold btn-press">
+          Save Allocation
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openReassignModal(id, name, roll, busId, stopId) {
+  document.getElementById('modal-student-id').value = id;
+  document.getElementById('modal-student-info').textContent = `${name} (${roll})`;
+  if (busId) {
+    document.getElementById('modal-bus-select').value = busId;
+  }
+  if (stopId) {
+    document.getElementById('modal-stop-select').value = stopId;
+  }
+  document.getElementById('reassign-modal').classList.remove('hidden');
+}
+
+function closeReassignModal() {
+  document.getElementById('reassign-modal').classList.add('hidden');
+}
+</script>
+{% endblock %}

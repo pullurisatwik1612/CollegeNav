@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In • {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto py-2 space-y-6">
+
+  <!-- Header Brand Banner -->
+  <div class="text-center space-y-1.5">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-400 text-xs font-semibold tracking-wide uppercase">
+      Transit Access Portal
+    </div>
+    <h1 class="text-2xl sm:text-3xl font-extrabold font-display text-white">
+      Sign in to <span class="text-amber-400">CollegeNav</span>
+    </h1>
+    <p class="text-xs sm:text-sm text-slate-400">
+      Access your personalized bus tracking, driver controls, or fleet management.
+    </p>
+  </div>
+
+  <!-- 1-Tap Quick Demo Access for Hackathon Judges -->
+  <div class="glass-card rounded-2xl p-4 sm:p-5 border border-amber-400/30 bg-gradient-to-br from-amber-500/10 via-slate-900/60 to-slate-900/80 shadow-xl">
+    <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center gap-2">
+        <span class="text-amber-400 text-lg">⚡</span>
+        <span class="text-xs font-extrabold font-display uppercase tracking-wider text-amber-300">
+          Hackathon 1-Tap Demo Logins
+        </span>
+      </div>
+      <span class="text-[11px] text-slate-400">No typing needed</span>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+      <!-- 1-Tap Student -->
+      <a href="/login?demo_as=student&id=1" class="glass-card hover:bg-amber-400/15 p-3 rounded-xl border border-white/10 hover:border-amber-400/40 text-left transition-all btn-press block group">
+        <div class="flex items-center justify-between text-xs font-bold text-white group-hover:text-amber-300">
+          <span>🎓 Student</span>
+          <span class="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded">Bus 1</span>
+        </div>
+        <div class="text-xs text-slate-200 mt-1 font-semibold">Aarav Patel</div>
+        <div class="text-[10px] text-slate-400">23CS101 • LB Nagar</div>
+      </a>
+
+      <!-- 1-Tap Driver -->
+      <a href="/login?demo_as=driver&id=1" class="glass-card hover:bg-emerald-400/15 p-3 rounded-xl border border-white/10 hover:border-emerald-400/40 text-left transition-all btn-press block group">
+        <div class="flex items-center justify-between text-xs font-bold text-white group-hover:text-emerald-300">
+          <span>🚌 Driver</span>
+          <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">R1</span>
+        </div>
+        <div class="text-xs text-slate-200 mt-1 font-semibold">Ramesh Kumar</div>
+        <div class="text-[10px] text-slate-400">DRV-01 • TS 08 UA 1001</div>
+      </a>
+
+      <!-- 1-Tap Admin -->
+      <a href="/login?demo_as=admin" class="glass-card hover:bg-purple-400/15 p-3 rounded-xl border border-white/10 hover:border-purple-400/40 text-left transition-all btn-press block group">
+        <div class="flex items-center justify-between text-xs font-bold text-white group-hover:text-purple-300">
+          <span>🛡️ Admin</span>
+          <span class="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded">Fleet</span>
+        </div>
+        <div class="text-xs text-slate-200 mt-1 font-semibold">Transport Admin</div>
+        <div class="text-[10px] text-slate-400">10 Buses & Allocations</div>
+      </a>
+    </div>
+
+    <!-- Toggle to view all 10 students & 10 drivers -->
+    <details class="mt-3 text-xs text-slate-400">
+      <summary class="cursor-pointer text-amber-400 hover:text-amber-300 font-semibold text-center select-none py-1">
+        ▼ View all 10 demo students & 10 drivers
+      </summary>
+      <div class="mt-3 pt-3 border-t border-white/10 space-y-3">
+        <div>
+          <div class="text-[11px] font-bold uppercase text-slate-300 mb-1.5">10 Demo Students (1 per Bus):</div>
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+            {% for s in demo_students %}
+            <a href="/login?demo_as=student&id={{ s.id }}" class="p-2 rounded-lg bg-white/5 hover:bg-amber-400/20 text-left border border-white/5 transition-all text-[11px]">
+              <div class="font-bold text-white truncate">{{ s.name }}</div>
+              <div class="text-[10px] text-slate-400">{{ s.roll_no }} · {{ s.route_code }}</div>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div>
+          <div class="text-[11px] font-bold uppercase text-slate-300 mb-1.5">10 Demo Drivers (1 per Bus):</div>
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+            {% for d in demo_drivers %}
+            <a href="/login?demo_as=driver&id={{ d.id }}" class="p-2 rounded-lg bg-white/5 hover:bg-emerald-400/20 text-left border border-white/5 transition-all text-[11px]">
+              <div class="font-bold text-white truncate">{{ d.name }}</div>
+              <div class="text-[10px] text-slate-400">{{ d.emp_id }} · {{ d.route_code }}</div>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <!-- Role Tabs Selector -->
+  <div class="glass-panel rounded-2xl p-5 shadow-2xl">
+    <div class="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-slate-950/60 border border-white/10 mb-5">
+      <button type="button" onclick="switchTab('student')" id="tab-btn-student" class="py-2.5 px-3 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 {% if active_tab == 'student' %}bg-amber-400 text-slate-950 shadow{% else %}text-slate-400 hover:text-white{% endif %}">
+        <span>🎓</span>
+        <span>Student</span>
+      </button>
+
+      <button type="button" onclick="switchTab('driver')" id="tab-btn-driver" class="py-2.5 px-3 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 {% if active_tab == 'driver' %}bg-amber-400 text-slate-950 shadow{% else %}text-slate-400 hover:text-white{% endif %}">
+        <span>🚌</span>
+        <span>Driver</span>
+      </button>
+
+      <button type="button" onclick="switchTab('admin')" id="tab-btn-admin" class="py-2.5 px-3 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 {% if active_tab == 'admin' %}bg-amber-400 text-slate-950 shadow{% else %}text-slate-400 hover:text-white{% endif %}">
+        <span>🛡️</span>
+        <span>Admin</span>
+      </button>
+    </div>
+
+    <!-- TAB 1: Student Login Form -->
+    <form id="form-student" method="post" action="/login?tab=student" class="space-y-4 {% if active_tab != 'student' %}hidden{% endif %}">
+      <input type="hidden" name="role" value="student">
+      
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+          Student Roll Number
+        </label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">🎓</span>
+          <input 
+            type="text" 
+            name="roll_no" 
+            required 
+            placeholder="e.g. 23CS101" 
+            value="23CS101"
+            class="glass-input w-full rounded-xl pl-10 pr-3 py-3 text-sm font-semibold text-white uppercase placeholder-slate-500"
+          >
+        </div>
+        <p class="text-[11px] text-slate-400 mt-1">Demo roll numbers: 23CS101 through 23CS110</p>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+          Password
+        </label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">🔒</span>
+          <input 
+            type="password" 
+            name="password" 
+            required 
+            value="stud123"
+            placeholder="Enter password" 
+            class="glass-input w-full rounded-xl pl-10 pr-3 py-3 text-sm text-white placeholder-slate-500"
+          >
+        </div>
+        <p class="text-[11px] text-slate-400 mt-1">Default demo password: <code class="text-amber-300 font-mono">stud123</code></p>
+      </div>
+
+      <button type="submit" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 active:scale-[0.98] text-slate-950 font-extrabold rounded-xl py-3 px-4 shadow-lg shadow-amber-500/20 transition-all font-display tracking-tight text-sm flex items-center justify-center gap-2 btn-press">
+        <span>Sign In to Student Dashboard</span>
+        <span>➔</span>
+      </button>
+    </form>
+
+    <!-- TAB 2: Driver Login Form -->
+    <form id="form-driver" method="post" action="/login?tab=driver" class="space-y-4 {% if active_tab != 'driver' %}hidden{% endif %}">
+      <input type="hidden" name="role" value="driver">
+
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+          Driver Employee ID
+        </label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">🚌</span>
+          <input 
+            type="text" 
+            name="emp_id" 
+            required 
+            placeholder="e.g. DRV-01" 
+            value="DRV-01"
+            class="glass-input w-full rounded-xl pl-10 pr-3 py-3 text-sm font-semibold text-white uppercase placeholder-slate-500"
+          >
+        </div>
+        <p class="text-[11px] text-slate-400 mt-1">Demo IDs: DRV-01 through DRV-10</p>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+          Password
+        </label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">🔒</span>
+          <input 
+            type="password" 
+            name="password" 
+            required 
+            value="drv123"
+            placeholder="Enter password" 
+            class="glass-input w-full rounded-xl pl-10 pr-3 py-3 text-sm text-white placeholder-slate-500"
+          >
+        </div>
+        <p class="text-[11px] text-slate-400 mt-1">Default demo password: <code class="text-amber-300 font-mono">drv123</code></p>
+      </div>
+
+      <button type="submit" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 active:scale-[0.98] text-slate-950 font-extrabold rounded-xl py-3 px-4 shadow-lg shadow-emerald-500/20 transition-all font-display tracking-tight text-sm flex items-center justify-center gap-2 btn-press">
+        <span>Sign In to Driver Duty Portal</span>
+        <span>➔</span>
+      </button>
+    </form>
+
+    <!-- TAB 3: Admin Login Form -->
+    <form id="form-admin" method="post" action="/login?tab=admin" class="space-y-4 {% if active_tab != 'admin' %}hidden{% endif %}">
+      <input type="hidden" name="role" value="admin">
+
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+          Transport Admin Password
+        </label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">🛡️</span>
+          <input 
+            type="password" 
+            name="password" 
+            required 
+            value="admin123"
+            placeholder="Enter admin password" 
+            class="glass-input w-full rounded-xl pl-10 pr-3 py-3 text-sm text-white placeholder-slate-500"
+          >
+        </div>
+        <p class="text-[11px] text-slate-400 mt-1">Default demo password: <code class="text-amber-300 font-mono">admin123</code></p>
+      </div>
+
+      <button type="submit" class="w-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 active:scale-[0.98] text-white font-extrabold rounded-xl py-3 px-4 shadow-lg shadow-purple-500/20 transition-all font-display tracking-tight text-sm flex items-center justify-center gap-2 btn-press">
+        <span>Sign In as Fleet Administrator</span>
+        <span>➔</span>
+      </button>
+    </form>
+  </div>
+
+  <!-- Guest Search Link -->
+  <div class="text-center">
+    <a href="/" class="text-xs text-slate-400 hover:text-amber-400 font-semibold transition-colors">
+      ← Continue as Guest to public route search & timetable
+    </a>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function switchTab(tab) {
+  ['student', 'driver', 'admin'].forEach(t => {
+    const f = document.getElementById('form-' + t);
+    const b = document.getElementById('tab-btn-' + t);
+    if (t === tab) {
+      f.classList.remove('hidden');
+      b.className = 'py-2.5 px-3 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 bg-amber-400 text-slate-950 shadow';
+    } else {
+      f.classList.add('hidden');
+      b.className = 'py-2.5 px-3 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 text-slate-400 hover:text-white';
+    }
+  });
+}
+</script>
+{% endblock %}

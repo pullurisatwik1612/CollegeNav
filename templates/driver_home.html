@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block title %}Driver Portal • {{ drv.name }} • {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+
+  <!-- Header & Driver Status -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-white/10">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Driver Duty Console</span>
+        <span class="text-[10px] bg-emerald-500/20 text-emerald-300 font-semibold px-2 py-0.5 rounded-full">Duty Active</span>
+      </div>
+      <h1 class="text-xl sm:text-2xl font-extrabold font-display text-white">
+        {{ drv.name }}
+      </h1>
+      <div class="text-xs text-slate-400 font-mono">
+        Employee ID: <span class="text-slate-200 font-bold">{{ drv.emp_id }}</span> • Bus: <span class="text-amber-400 font-bold">{{ drv.bus_reg }}</span>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <a href="/logout" class="text-xs px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition-all font-semibold btn-press">
+        Sign out
+      </a>
+    </div>
+  </div>
+
+  <!-- Primary Duty & Fleet Card -->
+  <div class="glass-panel rounded-2xl p-5 sm:p-6 border border-white/10 shadow-2xl space-y-5">
+    
+    <!-- Top Details -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div>
+        <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Assigned Route & Vehicle</div>
+        <div class="flex items-center gap-2 mt-1">
+          <span class="px-2.5 py-1 rounded-lg font-display font-extrabold text-sm text-white shadow-sm" style="background: {{ drv.route_color or '#059669' }};">
+            {{ drv.route_code }}
+          </span>
+          <span class="text-lg font-bold text-white">{{ drv.route_name }}</span>
+        </div>
+      </div>
+
+      <!-- Capacity & Boarding Metric -->
+      <div class="flex items-center gap-3">
+        <div class="text-right">
+          <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Today's Boarding Manifest</div>
+          <div class="text-base font-extrabold text-white">
+            <span class="text-emerald-400">{{ active_boarders }}</span>
+            <span class="text-slate-400 text-sm">/ {{ total_students }} students</span>
+          </div>
+        </div>
+        {% if not_travelling_count > 0 %}
+        <div class="px-2.5 py-1 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-bold">
+          {{ not_travelling_count }} not travelling today
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Active Trip Controls (Start/End Trip & GPS Transmitter) -->
+    <div class="rounded-2xl p-4 bg-slate-900/80 border border-white/10 space-y-3">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <span id="gps-pulse" class="w-3 h-3 rounded-full bg-slate-600"></span>
+            <span id="trip-status-label" class="text-xs font-extrabold uppercase tracking-wider text-slate-300">
+              Trip Inactive
+            </span>
+          </div>
+          <div id="gps-coords" class="text-[11px] text-slate-400 mt-0.5">
+            Press "Start Trip" to broadcast your live GPS to students on your route.
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button 
+            type="button" 
+            id="trip-toggle-btn" 
+            onclick="toggleTrip()" 
+            class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-slate-950 font-extrabold text-xs sm:text-sm tracking-tight font-display transition-all shadow-lg shadow-emerald-500/25 btn-press"
+          >
+            ▶️ Start Trip (Share GPS)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Delay / Traffic Alert Broadcast -->
+    <div class="pt-2 border-t border-white/10">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+          <span>📢</span>
+          <span>Broadcast Notice to Route Students</span>
+        </span>
+      </div>
+
+      <div class="flex flex-wrap gap-2 mb-2">
+        <button type="button" onclick="setQuickAlert('Running 10 minutes late due to traffic')" class="text-xs px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-colors">
+          ⏱️ 10 min delay
+        </button>
+        <button type="button" onclick="setQuickAlert('Running 15 minutes late due to heavy traffic near junction')" class="text-xs px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-colors">
+          ⏱️ 15 min delay
+        </button>
+        <button type="button" onclick="setQuickAlert('Departing stop now. Next stop approaching.')" class="text-xs px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-colors">
+          🚏 Departing now
+        </button>
+      </div>
+
+      <form id="delay-form" onsubmit="broadcastAlert(event)" class="flex gap-2">
+        <input 
+          id="alert-msg" 
+          type="text" 
+          required 
+          placeholder="Type quick message to all students on {{ drv.bus_reg }}..." 
+          class="glass-input flex-1 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white placeholder-slate-500"
+        >
+        <button type="submit" class="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shrink-0 btn-press">
+          Send Alert
+        </button>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- Passenger Manifest (Stop-by-Stop Roster) -->
+  <div class="space-y-3">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-base">📋</span>
+        <h2 class="text-sm sm:text-base font-extrabold font-display text-white">
+          Stop-by-Stop Passenger Manifest
+        </h2>
+      </div>
+      <span class="text-xs text-slate-400">
+        {{ manifest|length }} stops on route
+      </span>
+    </div>
+
+    {% for st in manifest %}
+    <div class="glass-card rounded-2xl p-4 sm:p-5 border border-white/10 space-y-3">
+      
+      <!-- Stop Header -->
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-amber-400 shrink-0"></span>
+            <span class="text-sm sm:text-base font-bold text-white">{{ st.name }}</span>
+            <span class="text-xs text-slate-400 font-mono">~{{ st.time_clock }}</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            {{ st.boarding_count }} Boarding
+          </span>
+          {% if st.skipped_count > 0 %}
+          <span class="text-xs font-bold px-2 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30">
+            {{ st.skipped_count }} Not Travelling
+          </span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Passengers List at This Stop -->
+      {% if st.passengers %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pt-1 border-t border-white/5">
+        {% for p in st.passengers %}
+        <div class="p-2.5 rounded-xl border text-xs transition-all {% if p.not_travelling_date %}bg-rose-950/20 border-rose-500/20 text-slate-400 opacity-60{% else %}bg-white/5 border-white/5 text-slate-200{% endif %}">
+          <div class="flex items-center justify-between">
+            <span class="font-bold {% if p.not_travelling_date %}line-through text-slate-400{% else %}text-white{% endif %}">
+              {{ p.name }}
+            </span>
+            <span class="font-mono text-[10px] text-amber-300 font-bold">Seat #{{ p.seat_no }}</span>
+          </div>
+          <div class="flex items-center justify-between mt-1 text-[10px]">
+            <span class="font-mono text-slate-400">{{ p.roll_no }}</span>
+            {% if p.not_travelling_date %}
+              <span class="text-rose-400 font-bold">🚫 Skipping Today</span>
+            {% else %}
+              <span class="text-emerald-400 font-semibold">✓ Boarding</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        <div class="text-xs text-slate-500 italic pt-1">
+          No students designated for pickup at this stop.
+        </div>
+      {% endif %}
+
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let tripActive = false;
+let watchId = null;
+const busId = {{ drv.bus_id or 0 }};
+
+function toggleTrip() {
+  const btn = document.getElementById('trip-toggle-btn');
+  const label = document.getElementById('trip-status-label');
+  const pulse = document.getElementById('gps-pulse');
+  const coords = document.getElementById('gps-coords');
+
+  if (!tripActive) {
+    // Start Trip
+    tripActive = true;
+    btn.textContent = '⏹️ End Trip';
+    btn.className = 'px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-400 hover:from-rose-400 hover:to-rose-300 text-slate-950 font-extrabold text-xs sm:text-sm tracking-tight font-display transition-all shadow-lg shadow-rose-500/25 btn-press';
+    label.textContent = 'Trip Active • Broadcasting Live GPS';
+    label.className = 'text-xs font-extrabold uppercase tracking-wider text-emerald-400';
+    pulse.className = 'w-3 h-3 rounded-full bg-emerald-400 animate-ping';
+    coords.textContent = 'Acquiring GPS fix from device sensors...';
+
+    if ('geolocation' in navigator) {
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const spd = pos.coords.speed || 0;
+          coords.textContent = `Live GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)} (Speed: ${Math.round(spd * 3.6)} km/h)`;
+          
+          fetch('/api/driver/location', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bus_id: busId, lat: lat, lng: lng, speed: spd })
+          }).catch(e => {});
+        },
+        (err) => {
+          coords.textContent = 'Device GPS signal weak. Using high-frequency simulated transit tracking.';
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      coords.textContent = 'Device does not support GPS. Simulator mode active.';
+    }
+    toast('Trip started! Live bus location is now visible to all students on your route.');
+  } else {
+    // End Trip
+    tripActive = false;
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+    }
+    btn.textContent = '▶️ Start Trip (Share GPS)';
+    btn.className = 'px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-slate-950 font-extrabold text-xs sm:text-sm tracking-tight font-display transition-all shadow-lg shadow-emerald-500/25 btn-press';
+    label.textContent = 'Trip Inactive';
+    label.className = 'text-xs font-extrabold uppercase tracking-wider text-slate-300';
+    pulse.className = 'w-3 h-3 rounded-full bg-slate-600';
+    coords.textContent = 'Press "Start Trip" to broadcast your live GPS to students on your route.';
+    toast('Trip ended.');
+  }
+}
+
+function setQuickAlert(text) {
+  document.getElementById('alert-msg').value = text;
+}
+
+async function broadcastAlert(e) {
+  e.preventDefault();
+  const input = document.getElementById('alert-msg');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  try {
+    const res = await fetch('/api/driver/broadcast-delay', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, kind: 'delay' })
+    });
+    const d = await res.json();
+    if (d.ok) {
+      input.value = '';
+      toast('Alert sent to all students on Route {{ drv.route_code }}!');
+    }
+  } catch (err) {
+    toast('Failed to broadcast alert. Please try again.');
+  }
+}
+</script>
+{% endblock %}

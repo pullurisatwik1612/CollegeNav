@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+{% from "_macros.html" import fresh_badge, alert_box %}
+
+{% block title %}My Bus • {{ stu.name }} • {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+
+  <!-- Welcome Banner & Student Status Bar -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-white/10">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Student Commute Dashboard</span>
+        <span class="text-[10px] bg-amber-400/20 text-amber-300 font-semibold px-2 py-0.5 rounded-full">Pass Active</span>
+      </div>
+      <h1 class="text-xl sm:text-2xl font-extrabold font-display text-white">
+        Hello, {{ stu.name }}
+      </h1>
+      <div class="text-xs text-slate-400 font-mono">
+        Roll No: <span class="text-slate-200 font-bold">{{ stu.roll_no }}</span> • Allocated Seat: <span class="text-amber-400 font-bold">#{{ stu.seat_no or 'Unassigned' }}</span>
+      </div>
+    </div>
+
+    <!-- Quick Action / Switch Account -->
+    <div class="flex items-center gap-2">
+      <a href="/logout" class="text-xs px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition-all font-semibold btn-press">
+        Sign out
+      </a>
+    </div>
+  </div>
+
+  <!-- Route Alerts (If Any) -->
+  {% if route_alerts %}
+  <div class="space-y-2">
+    {% for a in route_alerts %}
+      {{ alert_box(a) }}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Primary "My Bus" Hero Card -->
+  <div class="glass-panel rounded-2xl overflow-hidden relative border border-white/10 shadow-2xl">
+    <div class="h-2 w-full" style="background: {{ stu.route_color or '#2563eb' }}; box-shadow: 0 0 15px {{ stu.route_color or '#2563eb' }}66;"></div>
+
+    <div class="p-5 sm:p-6 space-y-5">
+      
+      <!-- Card Top: Bus Reg & Assigned Route -->
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2.5">
+            <span class="px-2.5 py-1 rounded-lg font-display font-extrabold text-sm text-white shadow-sm" style="background: {{ stu.route_color or '#2563eb' }};">
+              {{ stu.route_code }}
+            </span>
+            <span class="text-base sm:text-lg font-extrabold text-white font-display">
+              {{ stu.bus_reg }}
+            </span>
+          </div>
+          <div class="text-xs text-slate-300 font-medium mt-1">
+            {{ stu.route_name }}
+          </div>
+        </div>
+
+        <!-- Designated Pickup Stop Pill -->
+        <div class="text-right">
+          <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Your Pickup Stop</div>
+          <div class="text-sm sm:text-base font-extrabold text-amber-400 flex items-center justify-end gap-1">
+            <span>🚏</span>
+            <span>{{ stu.stop_name }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Commute Status Box -->
+      <div class="rounded-2xl p-4 border transition-all {% if stop_status == 'approaching' %}bg-emerald-950/40 border-emerald-500/40{% elif stop_status == 'passed' %}bg-rose-950/40 border-rose-500/30{% else %}bg-slate-900/60 border-white/10{% endif %}">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          
+          <div class="flex items-center gap-3">
+            {% if stop_status == 'approaching' %}
+              <div class="relative flex h-4 w-4 shrink-0">
+                <span class="radar-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-4 w-4 bg-emerald-500"></span>
+              </div>
+              <div>
+                <div class="text-xs font-bold uppercase tracking-wider text-emerald-300">Approaching Your Stop</div>
+                <div class="text-base sm:text-lg font-extrabold text-white">
+                  Bus is about <span class="text-emerald-400 font-display">~{{ eta_min }} min</span> away from {{ stu.stop_name }}
+                </div>
+              </div>
+            {% elif stop_status == 'passed' %}
+              <div class="text-2xl shrink-0">🔴</div>
+              <div>
+                <div class="text-xs font-bold uppercase tracking-wider text-rose-300">Already Passed Your Stop</div>
+                <div class="text-sm font-semibold text-rose-100">
+                  Your bus has already departed {{ stu.stop_name }} for the college campus.
+                </div>
+              </div>
+            {% else %}
+              <div class="text-2xl shrink-0">⏱️</div>
+              <div>
+                <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Scheduled Service</div>
+                <div class="text-sm font-semibold text-slate-200">
+                  {{ live.message if live.message else 'Trip departing according to scheduled timetable.' }}
+                </div>
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Live Source Pill -->
+          <div class="shrink-0">
+            {% if live.available %}
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                {{ live.label }}
+              </span>
+            {% else %}
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/5 text-slate-400 border border-white/10">
+                Timetable Mode
+              </span>
+            {% endif %}
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Driver Contact & Passenger Status -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+        <!-- Driver Card -->
+        <div class="glass-card rounded-xl p-3.5 border border-white/10 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center text-lg font-bold">
+              👨‍✈️
+            </div>
+            <div>
+              <div class="text-[11px] font-bold uppercase text-slate-400">Assigned Driver</div>
+              <div class="text-sm font-bold text-white">{{ stu.driver_name or 'Fleet Driver' }}</div>
+              <div class="text-xs text-slate-300">{{ stu.driver_phone or '+91 98480 11001' }}</div>
+            </div>
+          </div>
+          {% if stu.driver_phone %}
+          <a href="tel:{{ stu.driver_phone }}" class="p-2.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 transition-colors text-sm" title="Call Driver">
+            📞
+          </a>
+          {% endif %}
+        </div>
+
+        <!-- "Not Travelling Today" Interactive Feature -->
+        <div class="glass-card rounded-xl p-3.5 border border-white/10 flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-bold uppercase text-slate-400">Boarding Attendance</div>
+            <div id="travel-status-text" class="text-xs sm:text-sm font-bold {% if is_not_travelling %}text-rose-400{% else %}text-emerald-400{% endif %}">
+              {% if is_not_travelling %}
+                Not travelling today
+              {% else %}
+                Travelling today (Boarding)
+              {% endif %}
+            </div>
+            <div class="text-[10px] text-slate-400">Driver passenger count updates live</div>
+          </div>
+
+          <button 
+            type="button" 
+            id="toggle-travel-btn" 
+            onclick="toggleTravelStatus()" 
+            class="text-xs font-bold px-3 py-2 rounded-lg transition-all btn-press {% if is_not_travelling %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30{% else %}bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30{% endif %}"
+          >
+            {% if is_not_travelling %}I'm Travelling{% else %}Not Travelling Today{% endif %}
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Interactive Live Map Preview for My Bus -->
+  <div class="glass-panel rounded-2xl p-4 sm:p-5 border border-white/10 space-y-3">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-base">🗺️</span>
+        <h3 class="text-sm font-bold uppercase tracking-wider text-white font-display">
+          Live Route Radar
+        </h3>
+      </div>
+      <a href="{{ url_for('route_detail', route_id=stu.route_id, stop=stu.stop_name) }}" class="text-xs text-amber-400 hover:text-amber-300 font-bold underline">
+        Full route details →
+      </a>
+    </div>
+
+    <!-- Map Canvas -->
+    <div id="student-map" class="h-64 sm:h-72 w-full rounded-xl overflow-hidden border border-white/10"></div>
+  </div>
+
+  <!-- Upcoming Timetable Departures for this Route -->
+  {% if deps %}
+  <div class="glass-card rounded-2xl p-4 sm:p-5 border border-white/10 space-y-3">
+    <div class="flex items-center justify-between">
+      <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">
+        Today's Timetable at {{ stu.stop_name }}
+      </h3>
+      <span class="text-[11px] text-slate-400">Pickup stop time</span>
+    </div>
+    
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      {% for x in deps %}
+      <div class="rounded-xl p-3 border text-center transition-all {% if loop.first %}bg-amber-400/15 border-amber-400/30 text-amber-300{% else %}bg-white/5 border-white/10 text-slate-300{% endif %}">
+        <div class="text-base font-extrabold font-display text-white">{{ x.clock }}</div>
+        <div class="text-[11px] text-slate-400 mt-0.5">
+          {% if x.wait < 60 %}in {{ x.wait }}m{% else %}in {{ (x.wait // 60) }}h {{ x.wait % 60 }}m{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+// "Not travelling today" AJAX toggle
+async function toggleTravelStatus() {
+  const btn = document.getElementById('toggle-travel-btn');
+  const txt = document.getElementById('travel-status-text');
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+
+  try {
+    const res = await fetch('/api/student/toggle-travel', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      if (data.travelling) {
+        txt.textContent = 'Travelling today (Boarding)';
+        txt.className = 'text-xs sm:text-sm font-bold text-emerald-400';
+        btn.textContent = 'Not Travelling Today';
+        btn.className = 'text-xs font-bold px-3 py-2 rounded-lg transition-all btn-press bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30';
+        toast('Status updated: You are marked as Travelling today.');
+      } else {
+        txt.textContent = 'Not travelling today';
+        txt.className = 'text-xs sm:text-sm font-bold text-rose-400';
+        btn.textContent = "I'm Travelling";
+        btn.className = 'text-xs font-bold px-3 py-2 rounded-lg transition-all btn-press bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30';
+        toast('Status updated: Driver notified you are Not Travelling today.');
+      }
+    }
+  } catch (e) {
+    toast('Error updating travel status. Please try again.');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Leaflet Map Initialization for Student Bus
+const mapEl = document.getElementById('student-map');
+if (mapEl) {
+  const map = L.map('student-map', { zoomControl: true });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(map);
+
+  const stops = {{ stops|tojson }};
+  const stuStopId = {{ stu.stop_id or 0 }};
+  const routeColor = '{{ stu.route_color or "#2563eb" }}';
+
+  if (stops && stops.length > 0) {
+    const latlngs = stops.map(s => [s.lat, s.lng]);
+    const polyline = L.polyline(latlngs, {
+      color: routeColor,
+      weight: 4,
+      opacity: 0.85,
+      dashArray: '6 6'
+    }).addTo(map);
+
+    // Stop markers
+    stops.forEach(s => {
+      const isMyStop = (s.stop_id === stuStopId);
+      const icon = L.divIcon({
+        className: 'custom-pin',
+        html: `<div style="width:${isMyStop ? '16px' : '10px'};height:${isMyStop ? '16px' : '10px'};border-radius:50%;background:${isMyStop ? '#f59e0b' : '#94a3b8'};border:2px solid ${isMyStop ? '#fff' : '#0f172a'};box-shadow:0 0 10px ${isMyStop ? '#f59e0b' : 'transparent'}"></div>`,
+        iconSize: [isMyStop ? 16 : 10, isMyStop ? 16 : 10]
+      });
+      L.marker([s.lat, s.lng], { icon: icon })
+        .bindPopup(`<b>${s.name}</b>${isMyStop ? '<br><span style="color:#f59e0b;font-weight:bold;">Your Pickup Stop</span>' : ''}`)
+        .addTo(map);
+    });
+
+    // Bus position marker
+    let busMarker = null;
+    function updateBus() {
+      fetch('/api/live/{{ stu.route_id or 0 }}')
+        .then(r => r.json())
+        .then(d => {
+          if (d.available && d.lat && d.lng) {
+            const busIcon = L.divIcon({
+              className: 'bus-marker',
+              html: `<div style="font-size:24px;filter:drop-shadow(0 0 8px #f59e0b);">🚌</div>`,
+              iconSize: [28, 28]
+            });
+            if (!busMarker) {
+              busMarker = L.marker([d.lat, d.lng], { icon: busIcon }).addTo(map);
+            } else {
+              busMarker.setLatLng([d.lat, d.lng]);
+            }
+            busMarker.bindPopup(`<b>Bus: ${d.bus}</b><br>${d.label}`);
+          }
+        }).catch(e => {});
+    }
+
+    map.fitBounds(polyline.getBounds(), { padding: [25, 25] });
+    updateBus();
+    setInterval(updateBus, 10000);
+  }
+}
+</script>
+{% endblock %}

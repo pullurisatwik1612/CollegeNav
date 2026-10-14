@@ -75,13 +75,24 @@
         <button id="bell" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-amber-400 hover:bg-white/5 border border-transparent hover:border-white/10 transition-all text-sm btn-press" title="Turn on alert notifications" aria-label="Turn on alert notifications">
           🔔
         </button>
-        {% if is_admin %}
-          <a href="{{ url_for('admin_home') }}" class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-amber-400 text-slate-950 hover:bg-amber-300 transition-colors shadow-sm">
-            Admin
+        {% if user_role == 'student' %}
+          <a href="{{ url_for('student_home') }}" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-400 text-slate-950 hover:bg-amber-300 transition-colors shadow-sm flex items-center gap-1">
+            <span>🎓</span> <span class="hidden sm:inline">My Bus</span>
           </a>
+          <a href="{{ url_for('logout') }}" class="text-xs text-slate-400 hover:text-white px-1.5 py-1">Exit</a>
+        {% elif user_role == 'driver' %}
+          <a href="{{ url_for('driver_home') }}" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-400 text-slate-950 hover:bg-emerald-300 transition-colors shadow-sm flex items-center gap-1">
+            <span>🚌</span> <span class="hidden sm:inline">Duty</span>
+          </a>
+          <a href="{{ url_for('logout') }}" class="text-xs text-slate-400 hover:text-white px-1.5 py-1">Exit</a>
+        {% elif is_admin %}
+          <a href="{{ url_for('admin_home') }}" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-purple-400 text-slate-950 hover:bg-purple-300 transition-colors shadow-sm flex items-center gap-1">
+            <span>🛡️</span> <span class="hidden sm:inline">Admin</span>
+          </a>
+          <a href="{{ url_for('logout') }}" class="text-xs text-slate-400 hover:text-white px-1.5 py-1">Exit</a>
         {% else %}
-          <a href="{{ url_for('admin_login') }}" class="text-xs font-medium px-2.5 py-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all">
-            Admin
+          <a href="{{ url_for('unified_login') }}" class="text-xs font-bold px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 transition-all shadow-sm">
+            Sign In
           </a>
         {% endif %}
       </div>
@@ -105,7 +116,7 @@
       <div class="text-center mt-12 mb-4">
         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-900/60 border border-white/5 text-slate-400 backdrop-blur-sm">
           <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-          Simulated demo environment • Real fleet routes managed in Admin
+          Simulated demo environment • 10 Fleet buses • Max 50 seats/bus
         </span>
       </div>
     {% endif %}
@@ -115,11 +126,28 @@
   <nav class="fixed bottom-3 inset-x-0 mx-auto max-w-md px-3 z-40">
     <div class="glass-nav rounded-2xl p-1.5 shadow-2xl backdrop-blur-2xl grid grid-cols-4 gap-1 text-center text-xs">
       
-      <!-- Tab 1: Plan -->
+      <!-- Tab 1: Adaptive Home/Portal -->
+      {% if user_role == 'student' %}
+      <a href="{{ url_for('student_home') }}" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all btn-press {% if request.path=='/student' %}bg-amber-400/15 text-amber-400 font-bold border border-amber-400/30 shadow-inner{% else %}text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent{% endif %}">
+        <span class="text-lg leading-none mb-1">🎓</span>
+        <span class="tracking-tight text-[11px]">My Bus</span>
+      </a>
+      {% elif user_role == 'driver' %}
+      <a href="{{ url_for('driver_home') }}" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all btn-press {% if request.path=='/driver' %}bg-amber-400/15 text-amber-400 font-bold border border-amber-400/30 shadow-inner{% else %}text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent{% endif %}">
+        <span class="text-lg leading-none mb-1">🚌</span>
+        <span class="tracking-tight text-[11px]">Duty</span>
+      </a>
+      {% elif is_admin %}
+      <a href="{{ url_for('admin_allocations') }}" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all btn-press {% if request.path.startswith('/admin') %}bg-amber-400/15 text-amber-400 font-bold border border-amber-400/30 shadow-inner{% else %}text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent{% endif %}">
+        <span class="text-lg leading-none mb-1">🛡️</span>
+        <span class="tracking-tight text-[11px]">Admin</span>
+      </a>
+      {% else %}
       <a href="/" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all btn-press {% if request.path=='/' %}bg-amber-400/15 text-amber-400 font-bold border border-amber-400/30 shadow-inner{% else %}text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent{% endif %}">
         <span class="text-lg leading-none mb-1">🔎</span>
         <span class="tracking-tight text-[11px]">Plan</span>
       </a>
+      {% endif %}
 
       <!-- Tab 2: Routes -->
       <a href="{{ url_for('routes_list') }}" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all btn-press {% if request.path.startswith('/routes') %}bg-amber-400/15 text-amber-400 font-bold border border-amber-400/30 shadow-inner{% else %}text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent{% endif %}">
