@@ -631,6 +631,7 @@ def student_home():
 
         # Live location
         live = live_for_route(stu["route_id"])
+        bus_offset = None
         if live.get("available"):
             bus_offset = live.get("offset", 0)
             diff = stu_offset - bus_offset
@@ -649,10 +650,89 @@ def student_home():
         deps = departures_at(stu["route_id"], stu_offset, qmin, now.date(), 4)
         route_alerts = active_alerts(stu["route_id"])
 
+        # Stop progression pipeline
+        stop_progression = []
+        stops_away = None
+        current_stop_name = None
+        for idx, s in enumerate(stops):
+            is_my = (s["stop_id"] == stu["stop_id"])
+            s_dict = dict(s)
+            s_dict["seq_num"] = idx + 1
+            s_dict["is_my_stop"] = is_my
+            if bus_offset is not None:
+                d = s["offset_min"] - bus_offset
+                if d < -1.2:
+                    s_dict["status"] = "passed"
+                    s_dict["eta_min"] = None
+                elif -1.2 <= d <= 1.2:
+                    s_dict["status"] = "current"
+                    s_dict["eta_min"] = 0
+                    current_stop_name = s["name"]
+                else:
+                    s_dict["status"] = "upcoming"
+                    s_dict["eta_min"] = max(1, int(round(d)))
+            else:
+                s_dict["status"] = "scheduled"
+                s_dict["eta_min"] = None
+            stop_progression.append(s_dict)
+
+        if live.get("available") and stop_status == "approaching":
+            rem = [s for s in stops if bus_offset - 1.2 <= s["offset_min"] < stu_offset]
+            stops_away = max(0, len(rem))
+
+    # Bus occupancy & crowd status
+    occupancy = None
+    if stu["bus_id"]:
+        tot_assigned = db().execute("SELECT COUNT(*) AS c FROM students WHERE bus_id=?", (stu["bus_id"],)).fetchone()["c"]
+        not_trav = db().execute("SELECT COUNT(*) AS c FROM students WHERE bus_id=? AND not_travelling_date=?", (stu["bus_id"], today_str)).fetchone()["c"]
+        actual_pass = max(0, tot_assigned - not_trav)
+        cap = stu["bus_capacity"] or 50
+        pct = min(100, int(round((actual_pass / cap) * 100))) if cap else 0
+        occupancy = {
+            "assigned": tot_assigned,
+            "not_travelling": not_trav,
+            "actual": actual_pass,
+            "capacity": cap,
+            "pct": pct,
+            "label": "Full (50/50)" if actual_pass >= cap else ("Near Full" if pct >= 90 else ("Moderate" if pct >= 60 else "Seats Available"))
+        }
+
+    # Alternative transit options for "Missed Bus" helper
+    alt_buses = []
+    if stu["stop_id"] and stu["route_id"]:
+        alt_rows = db().execute(
+            "SELECT DISTINCT r.id AS route_id, r.code AS route_code, r.name AS route_name, r.color AS route_color, "
+            "b.reg_no AS bus_reg, d.name AS driver_name, d.phone AS driver_phone "
+            "FROM route_stops rs "
+            "JOIN routes r ON r.id = rs.route_id "
+            "LEFT JOIN buses b ON b.route_id = r.id "
+            "LEFT JOIN drivers d ON d.bus_id = b.id "
+            "WHERE rs.stop_id = ? AND r.id != ? AND r.status = 'active' "
+            "ORDER BY r.code LIMIT 3",
+            (stu["stop_id"], stu["route_id"])
+        ).fetchall()
+        alt_buses = [dict(x) for x in alt_rows]
+
+    if not alt_buses and stu["route_id"]:
+        alt_rows = db().execute(
+            "SELECT r.id AS route_id, r.code AS route_code, r.name AS route_name, r.color AS route_color, "
+            "b.reg_no AS bus_reg, d.name AS driver_name, d.phone AS driver_phone "
+            "FROM routes r "
+            "JOIN buses b ON b.route_id = r.id "
+            "LEFT JOIN drivers d ON d.bus_id = b.id "
+            "WHERE r.id != ? AND r.status = 'active' "
+            "ORDER BY r.code LIMIT 3",
+            (stu["route_id"],)
+        ).fetchall()
+        alt_buses = [dict(x) for x in alt_rows]
+
     return render_template("student_home.html", stu=stu, stops=stops,
                            live=live, stop_status=stop_status, eta_min=eta_min,
                            deps=deps, is_not_travelling=is_not_travelling,
-                           route_alerts=route_alerts, stu_offset=stu_offset)
+                           route_alerts=route_alerts, stu_offset=stu_offset,
+                           stop_progression=stop_progression, stops_away=stops_away,
+                           current_stop_name=current_stop_name, occupancy=occupancy,
+                           alt_buses=alt_buses)
 
 
 @app.route("/api/student/toggle-travel", methods=["POST"])
@@ -671,6 +751,52 @@ def api_student_toggle_travel():
     db().execute("UPDATE students SET not_travelling_date=? WHERE id=?", (new_val, sid))
     db().commit()
     return jsonify(ok=True, travelling=status)
+
+
+@app.route("/api/student/sos", methods=["POST"])
+@student_required
+def api_student_sos():
+    stu = get_current_student()
+    if not stu:
+        return jsonify(ok=False, message="Student session not found"), 401
+
+    data = request.get_json(silent=True) or request.form
+    kind = data.get("kind", "sos")  # "sos", "missed_bus", "breakdown", "complaint"
+    note = data.get("note", "").strip()
+
+    now_ts = time.time()
+    expires_ts = now_ts + 86400  # active for 24h
+
+    if kind == "sos":
+        msg = f"🚨 [EMERGENCY SOS] Student {stu['name']} (Roll: {stu['roll_no']}) triggered SOS alert at Stop: {stu['stop_name']} on Route {stu['route_code']}. {note or 'Immediate campus security & transport response requested!'}"
+        alert_kind = "cancelled"
+    elif kind == "missed_bus":
+        msg = f"⚠️ [MISSED BUS NOTICE] Student {stu['name']} (Roll: {stu['roll_no']}) reported missed pickup on Bus {stu['bus_reg']} at Stop: {stu['stop_name']}. {note or 'Requesting alternative transfer options.'}"
+        alert_kind = "delay"
+    elif kind == "breakdown":
+        msg = f"🛠️ [TRANSIT REPORT] Student {stu['name']} (Roll: {stu['roll_no']}) reported an issue with Bus {stu['bus_reg']}: {note or 'Transit delay / technical issue'}"
+        alert_kind = "info"
+    else:
+        msg = f"ℹ️ [STUDENT FEEDBACK] {stu['name']} (Roll: {stu['roll_no']}): {note}"
+        alert_kind = "info"
+
+    db().execute(
+        "INSERT INTO alerts (route_id, kind, message, created_ts, expires_ts, active) "
+        "VALUES (?, ?, ?, ?, ?, 1)",
+        (stu["route_id"], alert_kind, msg, now_ts, expires_ts)
+    )
+    db().commit()
+
+    return jsonify(
+        ok=True,
+        kind=kind,
+        message="Incident report transmitted immediately to College Transport Desk & Control Room.",
+        hotlines=[
+            {"name": "Campus Transport Desk", "phone": "+91 98480 99999", "role": "Fleet Dispatch Hotline"},
+            {"name": "24/7 Campus Control Room", "phone": "+91 98480 88888", "role": "Emergency Security"},
+            {"name": "Assigned Driver", "phone": stu["driver_phone"] or "+91 98480 11001", "role": stu["driver_name"] or "Bus Driver"}
+        ]
+    )
 
 
 # ------------------------------- driver portal ------------------------------

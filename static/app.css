@@ -183,3 +183,47 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   border-radius: 50%;
   flex-shrink: 0;
 }
+
+/* SOS Pulse Animation */
+@keyframes sosPulseAnim {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { box-shadow: 0 0 0 14px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.sos-pulse {
+  animation: sosPulseAnim 2s infinite;
+}
+
+/* Glow Utilities */
+.glow-amber {
+  box-shadow: 0 0 20px -3px rgba(245, 158, 11, 0.4);
+}
+.glow-emerald {
+  box-shadow: 0 0 20px -3px rgba(16, 185, 129, 0.4);
+}
+.glow-rose {
+  box-shadow: 0 0 20px -3px rgba(239, 68, 68, 0.4);
+}
+
+/* Metro Timeline Stepper Track */
+.metro-track {
+  position: relative;
+}
+.metro-step-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 24px;
+  bottom: -12px;
+  left: 17px;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  z-index: 0;
+}
+.metro-step-item.is-passed:not(:last-child)::after {
+  background: rgba(16, 185, 129, 0.5);
+}
+.metro-step-item.is-current:not(:last-child)::after {
+  background: linear-gradient(to bottom, #f59e0b, rgba(255, 255, 255, 0.12));
+}
+
