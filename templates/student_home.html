@@ -26,30 +26,6 @@
         <span>•</span>
         <span>Allocated Seat: <strong class="text-amber-400 font-bold">#{{ stu.seat_no or 'Unassigned' }}</strong></span>
       </div>
-
-      <!-- Demo Transit Duty Phase Switcher (For Testing & Judges) -->
-      <div class="flex items-center gap-2 mt-2 pt-2 border-t border-white/10 flex-wrap">
-        <span class="text-[11px] font-bold uppercase text-slate-400">Transit Phase:</span>
-        <div class="inline-flex rounded-xl bg-white/5 p-1 border border-white/10 gap-1 text-xs">
-          <a href="/student?phase=morning" class="px-2.5 py-1 rounded-lg transition-all font-semibold flex items-center gap-1.5 {% if demo_phase == 'morning' %}bg-amber-400 text-slate-950 font-bold shadow{% else %}text-slate-300 hover:text-white hover:bg-white/5{% endif %}">
-            <span>🌅</span>
-            <span>Morning Pickup (7:35 AM)</span>
-          </a>
-          <a href="/student?phase=classes" class="px-2.5 py-1 rounded-lg transition-all font-semibold flex items-center gap-1.5 {% if demo_phase == 'classes' or (demo_phase == 'auto' and commute_phase == 'classes') %}bg-blue-600 text-white font-bold shadow{% else %}text-slate-300 hover:text-white hover:bg-white/5{% endif %}">
-            <span>🏫</span>
-            <span>Midday Classes (11:55 AM)</span>
-          </a>
-          <a href="/student?phase=evening" class="px-2.5 py-1 rounded-lg transition-all font-semibold flex items-center gap-1.5 {% if demo_phase == 'evening' %}bg-emerald-600 text-white font-bold shadow{% else %}text-slate-300 hover:text-white hover:bg-white/5{% endif %}">
-            <span>🌇</span>
-            <span>Evening Return (4:35 PM)</span>
-          </a>
-          {% if demo_phase != 'auto' %}
-          <a href="/student?phase=auto" class="px-2 py-1 text-[11px] text-amber-400 hover:text-amber-300 font-bold underline">
-            Reset Auto
-          </a>
-          {% endif %}
-        </div>
-      </div>
     </div>
 
     <!-- Quick Action Buttons -->
@@ -136,31 +112,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           
           <div class="flex items-start sm:items-center gap-3.5">
-            {% if commute_phase == 'classes' %}
-              <!-- Midday: College Classes in Session -->
-              <div class="w-11 h-11 rounded-2xl bg-blue-500/20 text-blue-400 border border-blue-500/40 flex items-center justify-center text-2xl shrink-0">
-                🎓
-              </div>
-              <div>
-                <div class="flex items-center gap-2">
-                  <span class="text-xs font-bold uppercase tracking-wider text-blue-300">College Classes in Session</span>
-                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-400/20 text-blue-300 border border-blue-400/30 font-bold">
-                    Morning Run Completed
-                  </span>
-                </div>
-                <div class="text-base sm:text-lg font-extrabold text-white font-display mt-0.5">
-                  {{ status_headline }}
-                </div>
-                <div class="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-                  {{ status_desc }}
-                </div>
-                <div class="mt-2.5 inline-flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 text-xs">
-                  <span class="text-amber-400 font-bold">Next Service:</span>
-                  <span class="text-white">Evening Return Bus departs Campus at <strong>{{ evening_depart_time }}</strong> (Drop-off at {{ stu.stop_name }} at <strong>{{ evening_drop_time }}</strong>)</span>
-                </div>
-              </div>
-
-            {% elif stop_status == 'approaching' or stop_status == 'evening_approaching' %}
+            {% if stop_status == 'approaching' or stop_status == 'evening_approaching' %}
               <!-- Bus approaching stop -->
               <div class="relative flex h-5 w-5 shrink-0 mt-0.5 sm:mt-0">
                 <span class="radar-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -176,7 +128,11 @@
                   {% endif %}
                 </div>
                 <div class="text-lg sm:text-xl font-extrabold text-white font-display mt-0.5">
-                  Bus is about <span class="text-emerald-400 underline decoration-emerald-500/50">~{{ eta_min }} min</span> away from {{ stu.stop_name }}
+                  {% if eta_min == 0 %}
+                    Bus is at <span class="text-emerald-400 font-bold">{{ stu.stop_name }}</span> (Boarding Now)
+                  {% else %}
+                    Bus is about <span class="text-emerald-400 underline decoration-emerald-500/50">~{{ eta_min }} min</span> away from {{ stu.stop_name }}
+                  {% endif %}
                 </div>
                 <div class="text-xs text-emerald-200/80 mt-0.5">
                   {{ status_desc }}
@@ -185,16 +141,16 @@
 
             {% elif stop_status == 'passed' or stop_status == 'evening_passed' %}
               <!-- Bus already departed stop -->
-              <div class="text-2xl shrink-0">🔴</div>
+              <div class="text-2xl shrink-0">🚌</div>
               <div>
-                <div class="text-xs font-bold uppercase tracking-wider text-rose-300">{{ status_badge }}</div>
-                <div class="text-sm sm:text-base font-bold text-rose-100 mt-0.5">
+                <div class="text-xs font-bold uppercase tracking-wider text-amber-300">{{ status_badge }}</div>
+                <div class="text-sm sm:text-base font-bold text-white mt-0.5">
                   {{ status_headline }}
                 </div>
-                <div class="text-xs text-rose-200/80 mt-1">
+                <div class="text-xs text-slate-300 mt-1">
                   {{ status_desc }}
                 </div>
-                <div class="text-xs text-rose-200/80 mt-1 flex items-center gap-2">
+                <div class="text-xs text-amber-200/80 mt-1 flex items-center gap-2">
                   <span>Need transit help?</span>
                   <button type="button" onclick="openModal('missed-bus-modal')" class="text-xs underline font-bold text-amber-300 hover:text-white">
                     Alternative Transit Options →
@@ -203,7 +159,7 @@
               </div>
 
             {% else %}
-              <!-- General status / night / scheduled -->
+              <!-- General status / scheduled -->
               <div class="text-2xl shrink-0">⏱️</div>
               <div>
                 <div class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ status_badge }}</div>
@@ -231,6 +187,36 @@
             {% endif %}
           </div>
 
+        </div>
+      </div>
+
+      <!-- Prominent Evening Return Transit Timings Card -->
+      <div class="rounded-2xl p-4 sm:p-5 border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-slate-900/80 to-purple-500/10 shadow-lg">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="flex items-start sm:items-center gap-3.5">
+            <div class="w-11 h-11 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center text-2xl shrink-0 shadow-inner">
+              🌇
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Evening Return Transit</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                  Daily Confirmed
+                </span>
+              </div>
+              <div class="text-base sm:text-lg font-extrabold text-white font-display mt-0.5">
+                Campus Departs at <span class="text-amber-400 font-mono">{{ evening_depart_time }}</span> • Scheduled Drop-off at <span class="text-emerald-400 font-mono">{{ evening_drop_time }}</span>
+              </div>
+              <div class="text-xs text-slate-300 mt-1">
+                Evening bus <strong>{{ stu.bus_reg }}</strong> departs College Campus Main Bay at <strong>{{ evening_depart_time }}</strong> and reaches your stop <strong>{{ stu.stop_name }}</strong> at <strong>{{ evening_drop_time }}</strong>.
+              </div>
+            </div>
+          </div>
+          <div class="shrink-0 text-left sm:text-right bg-white/5 sm:bg-transparent p-3 sm:p-0 rounded-xl border sm:border-0 border-white/10">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Evening Drop-Off Stop</div>
+            <div class="text-sm font-extrabold text-white mt-0.5">🚏 {{ stu.stop_name }}</div>
+            <div class="text-xs text-amber-300 font-mono font-bold">Seat #{{ stu.seat_no or '14' }} Reserved</div>
+          </div>
         </div>
       </div>
 

@@ -628,28 +628,9 @@ def student_home():
     stu_offset = 0
     route_alerts = []
 
-    # Demo Phase Control (Default is "auto" which uses real time)
-    # Allows hackathon judges & testers to test: "morning" (7:35 AM), "classes" (11:55 AM), "evening" (4:35 PM)
-    phase_param = request.args.get("phase")
-    if phase_param:
-        session["student_demo_phase"] = phase_param
-    demo_phase = session.get("student_demo_phase", "auto")
-    if demo_phase not in ("morning", "classes", "evening", "auto"):
-        demo_phase = "auto"
-
     now = local_now()
-    if demo_phase == "morning":
-        qmin = 7 * 60 + 35  # 07:35 AM
-        now_clock_str = "7:35 AM"
-    elif demo_phase == "evening":
-        qmin = 16 * 60 + 35 # 04:35 PM (16:35)
-        now_clock_str = "4:35 PM"
-    elif demo_phase == "classes":
-        qmin = 11 * 60 + 55 # 11:55 AM
-        now_clock_str = "11:55 AM"
-    else:
-        qmin = now.hour * 60 + now.minute
-        now_clock_str = clock(qmin)
+    qmin = now.hour * 60 + now.minute
+    now_clock_str = clock(qmin)
 
     if stu["bus_id"] and stu["route_id"]:
         stops = get_route_stops(stu["route_id"])
@@ -678,129 +659,51 @@ def student_home():
     evening_depart_time = clock(evening_start_min)
     evening_drop_time = clock(evening_drop_min)
 
-    # Determine Commute State
-    if qmin < 540:
-        # MORNING COMMUTE PHASE (Before 09:00 AM)
-        commute_phase = "morning"
-        phase_label = "Morning Campus Commute"
+    # Fetch live telemetry from the route
+    live_data = live_for_route(stu["route_id"]) if stu["route_id"] else {"available": False}
+    bus_offset = live_data.get("offset", 0.0) if live_data.get("available") else 0.0
+    bus_lat = live_data.get("lat")
+    bus_lng = live_data.get("lng")
+    if not bus_lat or not bus_lng:
+        bus_lat, bus_lng = pos_at_offset(stops, bus_offset) if stops else (17.2200, 78.7000)
 
-        if qmin < morning_start_min:
-            stop_status = "scheduled"
-            status_badge = "Scheduled Morning Run"
-            status_badge_color = "slate"
-            status_headline = "Morning Service Scheduled"
-            status_desc = f"Bus {stu['bus_reg']} departs origin at 7:30 AM. Scheduled pickup at {stu['stop_name']} at {morning_pickup_time}."
-            bus_offset = 0
-            eta_min = int(round(morning_pickup_min - qmin))
-            stops_away = len([s for s in stops if s["offset_min"] <= stu_offset]) - 1
-        elif morning_start_min <= qmin < morning_pickup_min:
-            stop_status = "approaching"
-            status_badge = "Approaching Your Stop"
-            status_badge_color = "emerald"
-            eta_min = max(1, int(round(morning_pickup_min - qmin)))
-            bus_offset = qmin - morning_start_min
-            status_headline = f"Approaching {stu['stop_name']}"
-            status_desc = f"Bus {stu['bus_reg']} is en route. Scheduled pickup at {morning_pickup_time} (~{eta_min} min away)."
-            rem = [s for s in stops if bus_offset - 1.2 <= s["offset_min"] < stu_offset]
-            stops_away = max(0, len(rem))
-        elif morning_pickup_min <= qmin < morning_arrive_min:
-            stop_status = "passed"
-            status_badge = "En Route to College"
-            status_badge_color = "amber"
-            bus_offset = qmin - morning_start_min
-            eta_min = None
-            stops_away = 0
-            status_headline = f"Departed {stu['stop_name']}"
-            status_desc = f"Morning bus departed {stu['stop_name']} at {morning_pickup_time} and is heading to Campus Main Gate (ETA {morning_arrive_time})."
-        else:
-            stop_status = "arrived_campus"
-            status_badge = "Arrived at Campus"
-            status_badge_color = "emerald"
-            bus_offset = total_span
-            eta_min = None
-            stops_away = 0
-            status_headline = "Arrived at College Campus"
-            status_desc = f"Bus safely arrived at Campus Main Gate at {morning_arrive_time}. Classes start at 9:00 AM."
-
-    elif 540 <= qmin < 930:
-        # MIDDAY / CLASSES IN SESSION (09:00 AM to 03:30 PM) — REAL LOCAL TIME!
-        commute_phase = "classes"
-        phase_label = "Campus Classes in Session"
-        stop_status = "classes"
-        status_badge = "Classes in Session"
-        status_badge_color = "blue"
-        bus_offset = total_span  # Bus is parked at College Campus Main Gate
-        eta_min = None
-        stops_away = None
-        status_headline = "Campus Classes in Session • Morning Commute Complete"
-        status_desc = (
-            f"Bus {stu['bus_reg']} safely completed morning drop-off at Campus Main Gate at {morning_arrive_time}. "
-            f"Vehicle is parked at Campus Fleet Bay on standby. Next service is the Evening Return trip."
-        )
-
-    elif 930 <= qmin < 1110:
-        # EVENING RETURN PHASE (03:30 PM to 06:30 PM)
-        commute_phase = "evening"
-        phase_label = "Evening Return Commute"
-
-        if qmin < evening_start_min:
-            stop_status = "evening_boarding"
-            status_badge = "Boarding at Campus"
-            status_badge_color = "amber"
-            bus_offset = total_span
-            eta_min = None
-            stops_away = None
-            status_headline = "Boarding at Campus Main Bay"
-            wait_m = int(round(evening_start_min - qmin))
-            status_desc = f"Evening bus {stu['bus_reg']} is currently boarding at College Main Gate. Scheduled departure at 4:30 PM ({wait_m}m remaining)."
-        elif evening_start_min <= qmin < evening_drop_min:
-            stop_status = "evening_approaching"
-            status_badge = "Return Bus En Route"
-            status_badge_color = "emerald"
-            eta_min = max(1, int(round(evening_drop_min - qmin)))
-            # Bus travels backwards from college to home terminus
-            bus_offset = max(0, total_span - (qmin - evening_start_min))
-            status_headline = f"Approaching {stu['stop_name']} (Return Trip)"
-            status_desc = f"Evening bus departed campus at 4:30 PM. Estimated arrival at {stu['stop_name']} at {evening_drop_time} (~{eta_min} min away)."
-            stops_away = max(0, int(round(eta_min / 8)))
-        elif evening_drop_min <= qmin < evening_end_min:
-            stop_status = "evening_passed"
-            status_badge = "Completed Drop-off"
-            status_badge_color = "slate"
-            bus_offset = 0
-            eta_min = None
-            stops_away = 0
-            status_headline = f"Completed Drop-off at {stu['stop_name']}"
-            status_desc = f"Evening bus dropped off passengers at {stu['stop_name']} at {evening_drop_time}. Heading to route terminus."
-        else:
-            stop_status = "evening_completed"
-            status_badge = "Return Trip Completed"
-            status_badge_color = "slate"
-            bus_offset = 0
-            eta_min = None
-            stops_away = 0
-            status_headline = "Evening Commute Completed"
-            status_desc = f"Bus {stu['bus_reg']} completed all return drop-offs for today at {clock(evening_end_min)}."
-
+    # Determine live status relative to student's boarding stop
+    diff = stu_offset - bus_offset
+    if diff > 0.5:
+        stop_status = "approaching"
+        status_badge = "Approaching Your Stop"
+        status_badge_color = "emerald"
+        eta_min = max(1, int(round(diff)))
+        status_headline = f"Approaching {stu['stop_name']}"
+        status_desc = f"Bus {stu['bus_reg']} is en route to {stu['stop_name']}. Scheduled pickup in ~{eta_min} min."
+        rem = [s for s in stops if bus_offset - 0.5 <= s["offset_min"] < stu_offset]
+        stops_away = max(0, len(rem))
+    elif -1.5 <= diff <= 0.5:
+        stop_status = "approaching"
+        status_badge = "Boarding Now"
+        status_badge_color = "emerald"
+        eta_min = 0
+        status_headline = f"Bus Arrived at {stu['stop_name']}"
+        status_desc = f"Bus {stu['bus_reg']} is now at {stu['stop_name']}. Please proceed to board at Seat #{stu['seat_no']}."
+        stops_away = 0
     else:
-        # NIGHT / OFF-HOURS (After 06:30 PM)
-        commute_phase = "night"
-        phase_label = "Service Closed for Today"
-        stop_status = "night"
-        status_badge = "Daily Service Closed"
-        status_badge_color = "slate"
-        bus_offset = 0
+        stop_status = "passed"
+        status_badge = "Departed Your Stop"
+        status_badge_color = "amber"
         eta_min = None
-        stops_away = None
-        status_headline = "Daily Transit Service Completed"
-        status_desc = f"All fleet operations for today have concluded. Tomorrow's morning pickup at {stu['stop_name']} is scheduled for {morning_pickup_time}."
+        stops_away = 0
+        status_headline = f"Departed {stu['stop_name']}"
+        status_desc = f"Bus {stu['bus_reg']} has departed {stu['stop_name']} and is proceeding along {stu['route_name']} towards College Campus."
 
-    # Live Beacon Coordinates
-    bus_lat, bus_lng = pos_at_offset(stops, bus_offset) if stops else (17.2200, 78.7000)
+    commute_phase = "active"
+    phase_label = "Campus Commute Transit"
+    demo_phase = ""
+
+    # Live Beacon Dict for UI & Map Radar
     live = {
         "available": True,
-        "source": "fleet_gps" if demo_phase == "auto" else "demo_simulation",
-        "label": "Live Fleet GPS" if demo_phase == "auto" else f"Demo: {phase_label}",
+        "source": live_data.get("source", "fleet_gps"),
+        "label": "Live Fleet GPS" if live_data.get("source") == "gps" else "Live Fleet Active",
         "bus": stu["bus_reg"],
         "lat": bus_lat,
         "lng": bus_lng,
@@ -817,49 +720,24 @@ def student_home():
         s_dict["seq_num"] = idx + 1
         s_dict["is_my_stop"] = is_my
 
-        if commute_phase == "classes":
-            if idx == len(stops) - 1:
-                s_dict["status"] = "current"
-                s_dict["eta_min"] = 0
-                s_dict["badge_label"] = "Parked at Campus Fleet Bay"
-                current_stop_name = s["name"]
-            else:
-                s_dict["status"] = "passed"
-                s_dict["eta_min"] = None
-                s_dict["badge_label"] = "Completed (Departed)"
-        elif commute_phase == "evening":
-            if s["offset_min"] >= bus_offset:
-                s_dict["status"] = "passed"
-                s_dict["eta_min"] = None
-                s_dict["badge_label"] = "Passed"
-            elif abs(s["offset_min"] - bus_offset) <= 2.5:
-                s_dict["status"] = "current"
-                s_dict["eta_min"] = 0
-                s_dict["badge_label"] = "Bus Here"
-                current_stop_name = s["name"]
-            else:
-                s_dict["status"] = "upcoming"
-                s_dict["eta_min"] = max(1, int(round((bus_offset - s["offset_min"]) * 1.1)))
-                s_dict["badge_label"] = f"~{s_dict['eta_min']}m"
+        d = s["offset_min"] - bus_offset
+        if d < -1.2:
+            s_dict["status"] = "passed"
+            s_dict["eta_min"] = None
+            s_dict["badge_label"] = "Departed"
+        elif -1.2 <= d <= 1.2:
+            s_dict["status"] = "current"
+            s_dict["eta_min"] = 0
+            s_dict["badge_label"] = "Bus Here"
+            current_stop_name = s["name"]
         else:
-            d = s["offset_min"] - bus_offset
-            if d < -1.2:
-                s_dict["status"] = "passed"
-                s_dict["eta_min"] = None
-                s_dict["badge_label"] = "Departed"
-            elif -1.2 <= d <= 1.2:
-                s_dict["status"] = "current"
-                s_dict["eta_min"] = 0
-                s_dict["badge_label"] = "Bus at Stop"
-                current_stop_name = s["name"]
-            else:
-                s_dict["status"] = "upcoming"
-                s_dict["eta_min"] = max(1, int(round(d)))
-                s_dict["badge_label"] = f"~{s_dict['eta_min']}m"
+            s_dict["status"] = "upcoming"
+            s_dict["eta_min"] = max(1, int(round(d)))
+            s_dict["badge_label"] = f"~{s_dict['eta_min']}m"
 
         stop_progression.append(s_dict)
 
-    # Official Student Daily Commute Timetable (Goodbye to "in 18h 54m"!)
+    # Official Student Daily Commute Timetable with Evening Return prominently kept
     daily_trips = [
         {
             "id": "morning",
@@ -868,9 +746,9 @@ def student_home():
             "time": morning_pickup_time,
             "sub": f"Boarding at {stu['stop_name']} → College Campus",
             "arrive": morning_arrive_time,
-            "badge": "Completed Today" if qmin >= morning_arrive_min else ("Active En Route" if morning_start_min <= qmin < morning_arrive_min else "Scheduled Today"),
-            "badge_color": "slate" if qmin >= morning_arrive_min else ("amber" if morning_start_min <= qmin < morning_arrive_min else "emerald"),
-            "timing_note": f"Departed at {morning_pickup_time}" if qmin >= morning_arrive_min else (f"Pickup in {format_mins_duration(morning_pickup_min - qmin)}" if qmin < morning_pickup_min else "Approaching campus")
+            "badge": "Morning Transit",
+            "badge_color": "emerald",
+            "timing_note": f"Scheduled pickup at {morning_pickup_time} • Arrives Campus at {morning_arrive_time}"
         },
         {
             "id": "evening",
@@ -879,9 +757,9 @@ def student_home():
             "time": evening_depart_time,
             "sub": f"College Main Bay → Drop-off at {stu['stop_name']}",
             "arrive": evening_drop_time,
-            "badge": "Completed Today" if qmin >= evening_end_min else ("Active Return" if evening_start_min <= qmin < evening_end_min else "Upcoming Today"),
-            "badge_color": "slate" if qmin >= evening_end_min else ("amber" if evening_start_min <= qmin < evening_end_min else "emerald"),
-            "timing_note": f"Completed at {evening_drop_time}" if qmin >= evening_end_min else (f"Departs campus in {format_mins_duration(evening_start_min - qmin)}" if qmin < evening_start_min else f"Estimated drop-off at {evening_drop_time}")
+            "badge": "Evening Service (4:30 PM)",
+            "badge_color": "amber",
+            "timing_note": f"Departs Campus at {evening_depart_time} • Reaches {stu['stop_name']} at {evening_drop_time}"
         },
         {
             "id": "tomorrow",
@@ -1091,6 +969,10 @@ def api_driver_broadcast_delay():
                  (drv["route_id"], kind, f"[{drv['bus_reg']}] {msg}", now, now + 4 * 3600))
     db().commit()
     flash("Notice broadcasted to all students on your route.", "ok")
+    if request.is_json:
+        return jsonify(ok=True, message="Notice broadcasted to all students on your route.")
+    return redirect(url_for("driver_home"))
+
 # URL aliases for backward compatibility
 app.add_url_rule("/driver", endpoint="driver", view_func=driver_home)
 app.add_url_rule("/student", endpoint="student", view_func=student_home)
