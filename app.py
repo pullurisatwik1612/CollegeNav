@@ -973,6 +973,43 @@ def api_driver_broadcast_delay():
         return jsonify(ok=True, message="Notice broadcasted to all students on your route.")
     return redirect(url_for("driver_home"))
 
+
+@app.route("/api/driver/checkin-stop", methods=["POST"])
+@driver_required
+def api_driver_checkin_stop():
+    drv = get_current_driver()
+    if not drv or not drv["bus_id"]:
+        return jsonify(error="No bus assigned"), 400
+    j = request.get_json(silent=True) or {}
+    stop_name = j.get("stop_name", "Stop").strip()
+    lat = j.get("lat")
+    lng = j.get("lng")
+
+    # Update bus position to this stop's location so live radar reflects arrival immediately
+    if lat is not None and lng is not None:
+        try:
+            db().execute(
+                "INSERT INTO bus_positions(bus_id,lat,lng,speed,updated_ts,source) VALUES(?,?,?,?,?,'gps') "
+                "ON CONFLICT(bus_id) DO UPDATE SET lat=excluded.lat, lng=excluded.lng, speed=0, updated_ts=excluded.updated_ts, source='gps'",
+                (drv["bus_id"], float(lat), float(lng), 0, time.time())
+            )
+            db().commit()
+        except Exception:
+            pass
+
+    # Broadcast arrival notice to route
+    broadcast = j.get("broadcast", True)
+    if broadcast and drv["route_id"]:
+        now = time.time()
+        db().execute(
+            "INSERT INTO alerts(route_id,kind,message,created_ts,expires_ts,active) VALUES(?,?,?,?,?,1)",
+            (drv["route_id"], "info", f"[{drv['bus_reg']}] Bus arrived at {stop_name}. Boarding in progress.", now, now + 1800)
+        )
+        db().commit()
+
+    return jsonify(ok=True, message=f"Arrived at {stop_name}")
+
+
 # URL aliases for backward compatibility
 app.add_url_rule("/driver", endpoint="driver", view_func=driver_home)
 app.add_url_rule("/student", endpoint="student", view_func=student_home)
