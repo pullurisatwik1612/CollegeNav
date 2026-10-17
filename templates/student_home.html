@@ -1,1671 +1,1028 @@
 {% extends "base.html" %}
-{% from "_macros.html" import fresh_badge, alert_box %}
 
-{% block title %}My Bus • {{ stu.name }} • {{ app_name }}{% endblock %}
+{% block title %}My Bus • {{ stu.name }} • CollegeNav 2.0{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="max-w-[480px] mx-auto pb-28 pt-2 px-3 sm:px-4 space-y-4 font-sans text-[#F4EFEC]">
 
-  <!-- ==================== 1. WELCOME HEADER & ACTIONS ==================== -->
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-white/10">
-    <div>
+  <!-- ==================== TAB VIEW 1: MY BUS (HOME) ==================== -->
+  <div id="view-mybus" class="tab-view space-y-4">
+    <!-- Header Row -->
+    <div class="flex items-center justify-between pt-1">
+      <div class="flex items-center gap-3">
+        <a href="/" class="shrink-0" aria-label="CollegeNav Home">
+          <img src="/static/logo.svg" alt="CollegeNav 2.0" class="w-10 h-10 drop-shadow">
+        </a>
+        <div>
+          <div class="text-xs font-semibold text-[#AEB5C6]">
+            {% if "evening" in commute_phase %}Good evening{% else %}Good morning{% endif %},
+          </div>
+          <h1 class="text-xl font-extrabold font-display tracking-tight text-[#F4EFEC]">
+            {{ stu.name.split(' ')[0] }}
+          </h1>
+        </div>
+      </div>
+
+      <!-- Route & Bus Chip -->
       <div class="flex items-center gap-2">
-        <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Student Commute Dashboard</span>
-        <span class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-          Pass Active • Fall 2026
-        </span>
-      </div>
-      <h1 class="text-xl sm:text-2xl font-extrabold font-display text-white mt-0.5">
-        Hello, {{ stu.name }}
-      </h1>
-      <div class="text-xs text-slate-400 font-mono mt-0.5 flex flex-wrap items-center gap-2">
-        <span>Roll: <strong class="text-slate-200">{{ stu.roll_no }}</strong></span>
-        <span>•</span>
-        <span>Bus: <strong class="text-white">{{ stu.bus_reg }}</strong> ({{ stu.route_code }})</span>
-        <span>•</span>
-        <span>Allocated Seat: <strong class="text-amber-400 font-bold">#{{ stu.seat_no or 'Unassigned' }}</strong></span>
-      </div>
-    </div>
-
-    <!-- Quick Action Buttons -->
-    <div class="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-      <!-- Digital ID Pass Modal Trigger -->
-      <button 
-        type="button" 
-        onclick="openModal('pass-modal')" 
-        class="text-xs px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-amber-600/20 hover:from-amber-500/30 hover:to-amber-600/30 text-amber-300 hover:text-amber-200 border border-amber-500/40 transition-all font-bold flex items-center gap-1.5 btn-press shadow-sm"
-      >
-        <span>🪪</span>
-        <span>Digital Pass</span>
-      </button>
-
-      <!-- Audio Chime Toggle -->
-      <button 
-        type="button" 
-        id="chime-toggle-btn"
-        onclick="toggleChimeAlert()" 
-        class="text-xs px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition-all font-semibold flex items-center gap-1.5 btn-press"
-        title="Play audio chime when bus is 1 stop away"
-      >
-        <span id="chime-icon">🔔</span>
-        <span id="chime-label">Alert: On</span>
-      </button>
-
-      <!-- Sign Out -->
-      <a href="/logout" class="text-xs px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition-all font-semibold btn-press">
-        Sign out
-      </a>
-    </div>
-  </div>
-
-  <!-- Route Alerts (If Any) -->
-  {% if route_alerts %}
-  <div class="space-y-2">
-    {% for a in route_alerts %}
-      {{ alert_box(a) }}
-    {% endfor %}
-  </div>
-  {% endif %}
-
-  <!-- ==================== 2. PRIMARY COMMUTE HERO & TELEMETRY CARD ==================== -->
-  <div class="glass-panel rounded-2xl overflow-hidden relative border border-white/10 shadow-2xl">
-    <!-- Top Route Color Accent Line -->
-    <div class="h-2 w-full" style="background: {{ stu.route_color or '#f59e0b' }}; box-shadow: 0 0 15px {{ stu.route_color or '#f59e0b' }}66;"></div>
-
-    <div class="p-5 sm:p-6 space-y-5">
-      
-      <!-- Card Top Bar: Bus Registration & Designated Pickup Stop -->
-      <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div>
-          <div class="flex items-center gap-2.5">
-            <span class="px-2.5 py-1 rounded-lg font-display font-extrabold text-sm text-white shadow-sm" style="background: {{ stu.route_color or '#2563eb' }};">
-              {{ stu.route_code }}
-            </span>
-            <span class="text-lg sm:text-xl font-extrabold text-white font-display">
-              {{ stu.bus_reg }}
-            </span>
-            <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">
-              Live Fleet Active
-            </span>
-          </div>
-          <div class="text-xs sm:text-sm text-slate-300 font-medium mt-1">
-            {{ stu.route_name }} • Terminus: College Campus Main Gate
-          </div>
+        {% if stu.bus_reg %}
+        <div class="px-2.5 py-1 rounded-xl bg-[#242F49] border border-[#384358] text-xs font-bold text-[#FFA586] flex items-center gap-1.5 font-mono shadow-sm">
+          <span class="w-2 h-2 rounded-full bg-[#34D399] animate-pulse"></span>
+          <span>{{ stu.route_code }}</span>
+          <span class="text-[#7D869C]">·</span>
+          <span class="text-[#F4EFEC]">{{ stu.bus_reg }}</span>
         </div>
-
-        <!-- Designated Pickup Stop Card -->
-        <div class="sm:text-right bg-white/5 sm:bg-transparent p-3 sm:p-0 rounded-xl border sm:border-0 border-white/10">
-          <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Your Boarding Stop</div>
-          <div class="text-base sm:text-lg font-extrabold text-amber-400 flex items-center sm:justify-end gap-1.5 mt-0.5">
-            <span>🚏</span>
-            <span>{{ stu.stop_name }}</span>
-          </div>
-          <div class="text-[11px] text-slate-400">
-            Seat Allocation: <strong class="text-amber-300 font-mono">Seat #{{ stu.seat_no or '14' }}</strong>
-          </div>
-        </div>
-      </div>
-
-      <!-- Live Commute Status Box -->
-      <div class="rounded-2xl p-4 sm:p-5 border transition-all {% if status_badge_color == 'emerald' %}bg-emerald-950/40 border-emerald-500/40 glow-emerald{% elif status_badge_color == 'blue' %}bg-blue-950/40 border-blue-500/40{% elif status_badge_color == 'amber' %}bg-amber-950/40 border-amber-500/40 glow-amber{% elif status_badge_color == 'rose' %}bg-rose-950/40 border-rose-500/30 glow-rose{% else %}bg-slate-900/60 border-white/10{% endif %}">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          
-          <div class="flex items-start sm:items-center gap-3.5">
-            {% if stop_status == 'approaching' or stop_status == 'evening_approaching' %}
-              <!-- Bus approaching stop -->
-              <div class="relative flex h-5 w-5 shrink-0 mt-0.5 sm:mt-0">
-                <span class="radar-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-5 w-5 bg-emerald-500"></span>
-              </div>
-              <div>
-                <div class="flex items-center gap-2">
-                  <span class="text-xs font-bold uppercase tracking-wider text-emerald-300">{{ status_badge }}</span>
-                  {% if stops_away is not none %}
-                    <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 font-bold">
-                      {% if stops_away == 0 %}Arriving Now!{% elif stops_away == 1 %}Next Stop is Yours{% else %}{{ stops_away }} stops away{% endif %}
-                    </span>
-                  {% endif %}
-                </div>
-                <div class="text-lg sm:text-xl font-extrabold text-white font-display mt-0.5">
-                  {% if eta_min == 0 %}
-                    Bus is at <span class="text-emerald-400 font-bold">{{ stu.stop_name }}</span> (Boarding Now)
-                  {% else %}
-                    Bus is about <span class="text-emerald-400 underline decoration-emerald-500/50">~{{ eta_min }} min</span> away from {{ stu.stop_name }}
-                  {% endif %}
-                </div>
-                <div class="text-xs text-emerald-200/80 mt-0.5">
-                  {{ status_desc }}
-                </div>
-              </div>
-
-            {% elif stop_status == 'passed' or stop_status == 'evening_passed' %}
-              <!-- Bus already departed stop -->
-              <div class="text-2xl shrink-0">🚌</div>
-              <div>
-                <div class="text-xs font-bold uppercase tracking-wider text-amber-300">{{ status_badge }}</div>
-                <div class="text-sm sm:text-base font-bold text-white mt-0.5">
-                  {{ status_headline }}
-                </div>
-                <div class="text-xs text-slate-300 mt-1">
-                  {{ status_desc }}
-                </div>
-                <div class="text-xs text-amber-200/80 mt-1 flex items-center gap-2">
-                  <span>Need transit help?</span>
-                  <button type="button" onclick="openModal('missed-bus-modal')" class="text-xs underline font-bold text-amber-300 hover:text-white">
-                    Alternative Transit Options →
-                  </button>
-                </div>
-              </div>
-
-            {% else %}
-              <!-- General status / scheduled -->
-              <div class="text-2xl shrink-0">⏱️</div>
-              <div>
-                <div class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ status_badge }}</div>
-                <div class="text-sm sm:text-base font-bold text-slate-200 mt-0.5">
-                  {{ status_headline }}
-                </div>
-                <div class="text-xs text-slate-400 mt-0.5">
-                  {{ status_desc }}
-                </div>
-              </div>
-            {% endif %}
-          </div>
-
-          <!-- Live Source Pill -->
-          <div class="shrink-0 self-start sm:self-auto">
-            {% if live.available %}
-              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                {{ live.label }}
-              </span>
-            {% else %}
-              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white/5 text-slate-400 border border-white/10">
-                Timetable Mode
-              </span>
-            {% endif %}
-          </div>
-
-        </div>
-      </div>
-
-      <!-- Prominent Evening Return Transit Timings Card -->
-      <div class="rounded-2xl p-4 sm:p-5 border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-slate-900/80 to-purple-500/10 shadow-lg">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div class="flex items-start sm:items-center gap-3.5">
-            <div class="w-11 h-11 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center text-2xl shrink-0 shadow-inner">
-              🌇
-            </div>
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Evening Return Transit</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
-                  Daily Confirmed
-                </span>
-              </div>
-              <div class="text-base sm:text-lg font-extrabold text-white font-display mt-0.5">
-                Campus Departs at <span class="text-amber-400 font-mono">{{ evening_depart_time }}</span> • Scheduled Drop-off at <span class="text-emerald-400 font-mono">{{ evening_drop_time }}</span>
-              </div>
-              <div class="text-xs text-slate-300 mt-1">
-                Evening bus <strong>{{ stu.bus_reg }}</strong> departs College Campus Main Bay at <strong>{{ evening_depart_time }}</strong> and reaches your stop <strong>{{ stu.stop_name }}</strong> at <strong>{{ evening_drop_time }}</strong>.
-              </div>
-            </div>
-          </div>
-          <div class="shrink-0 text-left sm:text-right bg-white/5 sm:bg-transparent p-3 sm:p-0 rounded-xl border sm:border-0 border-white/10">
-            <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Evening Drop-Off Stop</div>
-            <div class="text-sm font-extrabold text-white mt-0.5">🚏 {{ stu.stop_name }}</div>
-            <div class="text-xs text-amber-300 font-mono font-bold">Seat #{{ stu.seat_no or '14' }} Reserved</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bus Occupancy & Fleet Telemetry Row -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-        
-        <!-- Live Occupancy Meter -->
-        <div class="glass-card rounded-xl p-4 border border-white/10 space-y-2.5">
-          <div class="flex items-center justify-between text-xs">
-            <span class="font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <span>👥</span>
-              <span>Bus Capacity & Crowding</span>
-            </span>
-            {% if occupancy %}
-              <span class="font-bold text-xs px-2 py-0.5 rounded-md {% if occupancy.pct >= 95 %}bg-rose-500/20 text-rose-300 border border-rose-500/30{% elif occupancy.pct >= 80 %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% else %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% endif %}">
-                {{ occupancy.label }} ({{ occupancy.pct }}%)
-              </span>
-            {% endif %}
-          </div>
-
-          {% if occupancy %}
-          <div class="space-y-1.5">
-            <div class="flex items-center justify-between text-xs">
-              <span class="text-slate-300 font-medium">Occupied Seats:</span>
-              <span class="text-white font-mono font-bold">{{ occupancy.actual }} / {{ occupancy.capacity }}</span>
-            </div>
-            <!-- Progress Bar -->
-            <div class="w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
-              <div 
-                class="h-2.5 rounded-full transition-all duration-500 {% if occupancy.pct >= 95 %}bg-rose-500{% elif occupancy.pct >= 80 %}bg-amber-400{% else %}bg-emerald-400{% endif %}"
-                style="width: {{ occupancy.pct }}%;"
-              ></div>
-            </div>
-            <div class="flex items-center justify-between text-[11px] text-slate-400">
-              <span>{{ occupancy.not_travelling }} students skipped today</span>
-              <span>{{ occupancy.capacity - occupancy.actual }} free seats</span>
-            </div>
-          </div>
-          {% else %}
-          <div class="text-xs text-slate-400">Capacity information loading...</div>
-          {% endif %}
-        </div>
-
-        <!-- Telemetry & Driver Contacts -->
-        <div class="glass-card rounded-xl p-4 border border-white/10 flex flex-col justify-between gap-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center text-lg font-bold">
-                👨‍✈️
-              </div>
-              <div>
-                <div class="text-[11px] font-bold uppercase text-slate-400">Assigned Driver</div>
-                <div class="text-sm font-bold text-white">{{ stu.driver_name or 'Fleet Driver' }}</div>
-                <div class="text-xs text-slate-300 font-mono">{{ stu.driver_phone or '+91 98480 11001' }}</div>
-              </div>
-            </div>
-            
-            {% if stu.driver_phone %}
-            <a 
-              href="tel:{{ stu.driver_phone }}" 
-              class="px-3 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 transition-colors text-xs font-bold flex items-center gap-1.5 btn-press shadow-sm"
-              title="Call Driver"
-            >
-              <span>📞</span>
-              <span>Call</span>
-            </a>
-            {% endif %}
-          </div>
-
-          <!-- Quick Telemetry Badges -->
-          <div class="flex items-center gap-2 pt-1 border-t border-white/10 text-[11px] text-slate-400 flex-wrap">
-            <span class="inline-flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-md text-slate-300">
-              <span>⚡</span> Speed: <strong class="text-white">~34 km/h</strong>
-            </span>
-            <span class="inline-flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-md text-slate-300">
-              <span>📡</span> Signal: <strong class="text-emerald-400">4G Live GPS</strong>
-            </span>
-            <span class="inline-flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-md text-slate-300">
-              <span>🕒</span> Ping: <strong class="text-slate-200">Live</strong>
-            </span>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Attendance Toggle Row -->
-      <div class="glass-card rounded-xl p-3.5 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <div class="text-[11px] font-bold uppercase text-slate-400">Daily Attendance Notification</div>
-          <div id="travel-status-text" class="text-xs sm:text-sm font-bold {% if is_not_travelling %}text-rose-400{% else %}text-emerald-400{% endif %}">
-            {% if is_not_travelling %}
-              Not travelling today (Driver manifest updated)
-            {% else %}
-              Travelling today (Boarding at {{ stu.stop_name }})
-            {% endif %}
-          </div>
-          <div class="text-[10px] text-slate-400">Notifying the driver prevents unnecessary waiting at your pickup stop.</div>
-        </div>
-
-        <button 
-          type="button" 
-          id="toggle-travel-btn" 
-          onclick="toggleTravelStatus()" 
-          class="text-xs font-bold px-4 py-2.5 rounded-xl transition-all btn-press shrink-0 {% if is_not_travelling %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30{% else %}bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30{% endif %}"
-        >
-          {% if is_not_travelling %}I'm Travelling Today{% else %}Not Travelling Today{% endif %}
-        </button>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ==================== 2B. EVENING TRAVEL TO ANOTHER DESTINATION (1-DAY BUS REASSIGNMENT) ==================== -->
-  <div class="glass-panel rounded-2xl p-5 border border-amber-500/30 bg-gradient-to-br from-amber-950/20 via-slate-900/60 to-slate-900/90 shadow-2xl space-y-5">
-    
-    <!-- Section Header -->
-    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-white/10">
-      <div class="flex items-start gap-3">
-        <div class="w-10 h-10 rounded-2xl bg-amber-400/20 text-amber-300 border border-amber-400/40 flex items-center justify-center text-xl shrink-0">
-          🌇
-        </div>
-        <div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <h3 class="text-base sm:text-lg font-extrabold font-display text-white">
-              Travel to Another Destination from College
-            </h3>
-            <span class="text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
-              1-Day Bus Reassignment
-            </span>
-          </div>
-          <p class="text-xs text-slate-300 mt-0.5">
-            Heading to a project meetup, library, or another suburb after classes? Choose your destination to find evening buses departing campus at 4:30 PM.
-          </p>
-        </div>
-      </div>
-
-      <!-- Campus Commute Policy Rule Badge -->
-      <div class="text-[11px] bg-slate-900/90 border border-amber-500/20 rounded-xl p-3 space-y-1 sm:max-w-xs shrink-0 shadow-inner">
-        <div class="font-bold text-amber-400 flex items-center gap-1.5">
-          <span>⚠️</span> Important Transit Policy:
-        </div>
-        <div class="text-slate-300 leading-snug">
-          • <strong>Morning:</strong> Board your designated bus only to arrive at College.<br>
-          • <strong>Evening (4:30 PM):</strong> Bus changes allowed with <strong>Admin Approval</strong>.
-        </div>
-      </div>
-    </div>
-
-    <!-- Active Reassignment Request Status Card (If Any) -->
-    {% if today_change_request %}
-    <div class="p-4 rounded-2xl border transition-all {% if today_change_request.status == 'approved' %}bg-emerald-950/40 border-emerald-500/50 glow-emerald{% elif today_change_request.status == 'pending' %}bg-amber-950/30 border-amber-500/50 glow-amber{% else %}bg-rose-950/30 border-rose-500/40{% endif %} space-y-3">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div class="flex items-center gap-2.5">
-          {% if today_change_request.status == 'approved' %}
-            <span class="text-2xl">✅</span>
-            <div>
-              <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
-                <span>Request Approved</span> • <span>Boarding Authorized</span>
-              </span>
-              <div class="text-sm font-extrabold text-white mt-0.5">
-                Bus {{ today_change_request.target_bus_reg }} (Route {{ today_change_request.target_route_code }}) → {{ today_change_request.target_stop_name }}
-              </div>
-            </div>
-          {% elif today_change_request.status == 'pending' %}
-            <span class="text-2xl animate-pulse">⏳</span>
-            <div>
-              <span class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1">
-                <span>Request Pending Admin Approval</span>
-              </span>
-              <div class="text-sm font-extrabold text-white mt-0.5">
-                Requested Bus: {{ today_change_request.target_bus_reg }} ({{ today_change_request.target_route_code }}) → {{ today_change_request.target_stop_name }}
-              </div>
-            </div>
-          {% else %}
-            <span class="text-2xl">❌</span>
-            <div>
-              <span class="text-xs font-bold uppercase tracking-wider text-rose-400">Request Declined by Administrator</span>
-              <div class="text-sm font-extrabold text-white mt-0.5">
-                Could not reassign to Bus {{ today_change_request.target_bus_reg }}
-              </div>
-            </div>
-          {% endif %}
-        </div>
-
-        <div class="flex items-center gap-2">
-          {% if today_change_request.status == 'approved' %}
-            <button 
-              type="button" 
-              onclick="openModal('pass-modal')" 
-              class="text-xs font-bold px-3.5 py-2 rounded-xl bg-emerald-500/30 text-emerald-200 border border-emerald-400 hover:bg-emerald-500/40 btn-press flex items-center gap-1.5 shadow-sm"
-            >
-              <span>🪪</span>
-              <span>View Authorized Digital Pass</span>
-            </button>
-          {% elif today_change_request.status == 'pending' %}
-            <form method="post" action="/api/student/cancel-bus-change">
-              <button 
-                type="submit" 
-                class="text-xs font-bold px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-slate-300 border border-white/20 btn-press"
-                onclick="return confirm('Withdraw your pending bus reassignment request?')"
-              >
-                Withdraw Request
-              </button>
-            </form>
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-white/10 text-xs">
-        <div>
-          <span class="text-slate-400 font-medium">Submitted Reason:</span>
-          <div class="text-slate-200 font-medium italic mt-0.5">"{{ today_change_request.reason }}"</div>
-        </div>
-        <div>
-          <span class="text-slate-400 font-medium">Evening Departure Time:</span>
-          <div class="text-amber-300 font-mono font-bold mt-0.5">Today at 04:30 PM (Campus Gate)</div>
-        </div>
-        <div>
-          <span class="text-slate-400 font-medium">Admin Authorization Status:</span>
-          <div class="{% if today_change_request.status == 'approved' %}text-emerald-300 font-bold{% elif today_change_request.status == 'rejected' %}text-rose-300 font-semibold{% else %}text-amber-300 font-semibold{% endif %} mt-0.5">
-            {{ today_change_request.admin_notes or ('Under review by Campus Transport Desk' if today_change_request.status == 'pending' else 'No remarks') }}
-          </div>
-        </div>
-      </div>
-      {% if today_change_request.status == 'pending' %}
-      <div class="text-[11px] text-amber-300/90 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 flex items-center gap-2">
-        <span>ℹ️</span>
-        <span>Please wait for the Transport Administrator to approve your request. <strong>Only upon Admin approval can you board Bus {{ today_change_request.target_bus_reg }}.</strong></span>
-      </div>
-      {% endif %}
-    </div>
-    {% endif %}
-
-    <!-- Destination Selector (Origin is Locked to College Campus) -->
-    <div class="glass-card rounded-2xl p-4 sm:p-5 border border-white/10 space-y-4">
-      <div class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
-        <span>Find Evening Buses Leaving College Campus</span>
-        <span class="text-[10px] text-amber-400 font-normal">Departures start at 04:30 PM</span>
-      </div>
-
-      <form method="get" action="/student" id="dest-search-form" class="space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-          
-          <!-- Locked Starting Stop -->
-          <div>
-            <label class="block text-xs font-bold text-slate-300 mb-1 flex items-center justify-between">
-              <span>Starting Location (Fixed Origin)</span>
-              <span class="text-[10px] text-emerald-400 font-mono">🔒 LOCKED</span>
-            </label>
-            <div class="w-full rounded-xl bg-slate-900/90 border border-white/15 px-3.5 py-2.5 text-xs sm:text-sm text-slate-200 flex items-center justify-between cursor-not-allowed">
-              <span class="flex items-center gap-2 font-semibold">
-                <span class="text-amber-400">🏫</span>
-                <span>College Campus (Main Bay)</span>
-              </span>
-              <span class="text-[10px] bg-amber-500/20 text-amber-300 font-mono px-2 py-0.5 rounded">Departs 04:30 PM</span>
-            </div>
-            <p class="text-[10px] text-slate-400 mt-1">Evening return trips depart from College Campus to all city routes.</p>
-          </div>
-
-          <!-- Destination Selector -->
-          <div>
-            <label for="dest-stop-select" class="block text-xs font-bold text-slate-300 mb-1 flex items-center justify-between">
-              <span>Where do you want to go today?</span>
-              <span class="text-[10px] text-amber-400">Select Destination Stop</span>
-            </label>
-            <div class="flex gap-2">
-              <select 
-                id="dest-stop-select" 
-                name="dest_stop_id" 
-                class="glass-input flex-1 rounded-xl px-3 py-2 text-xs sm:text-sm text-white bg-slate-900 border-white/20 focus:border-amber-400 focus:outline-none"
-                onchange="handleDestChange(this.value)"
-              >
-                <option value="">-- Choose destination stop --</option>
-                {% for st in all_dest_stops %}
-                <option value="{{ st.id }}" {% if evening_search_stop_id == st.id|string %}selected{% endif %}>
-                  {{ st.name }} {% if st.landmark %}({{ st.landmark }}){% endif %}
-                </option>
-                {% endfor %}
-              </select>
-              <button 
-                type="submit" 
-                class="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs btn-press shrink-0 flex items-center gap-1.5 shadow-md"
-              >
-                <span>🔍</span>
-                <span>Find Buses</span>
-              </button>
-            </div>
-            <p class="text-[10px] text-slate-400 mt-1">Select any stop across Hyderabad city connected by campus routes.</p>
-          </div>
-
-        </div>
-      </form>
-
-      <!-- Dynamic Loading Indicator -->
-      <div id="dest-bus-loading" class="hidden py-4 text-center text-xs text-amber-400 flex items-center justify-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-        <span>Scanning evening bus routes to destination...</span>
-      </div>
-
-      <!-- Bus Search Results Display -->
-      <div id="dest-buses-container" class="space-y-3 pt-2">
-        {% if evening_search_stop %}
-          <div class="flex items-center justify-between pb-1 border-b border-white/10">
-            <div class="text-xs font-bold text-white flex items-center gap-1.5">
-              <span>🚏</span>
-              <span>Available Evening Buses to <strong class="text-amber-400 font-display">{{ evening_search_stop.name }}</strong>:</span>
-            </div>
-            <span class="text-[11px] text-slate-400 font-mono">{{ evening_buses_results|length }} bus(es) found</span>
-          </div>
-
-          {% if evening_buses_results %}
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {% for b in evening_buses_results %}
-            <div class="glass-card rounded-xl p-4 border border-white/15 space-y-3 relative overflow-hidden group hover:border-amber-400/50 transition-all">
-              <div class="flex items-start justify-between gap-2">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <span class="px-2 py-0.5 rounded font-display font-bold text-xs text-white" style="background: {{ b.route_color }};">
-                      {{ b.route_code }}
-                    </span>
-                    <span class="text-sm sm:text-base font-extrabold text-white font-mono">
-                      {{ b.bus_reg }}
-                    </span>
-                  </div>
-                  <div class="text-xs text-slate-300 font-medium mt-1">
-                    {{ b.route_name }}
-                  </div>
-                </div>
-
-                <!-- Seat Capacity Badge -->
-                <div class="text-right shrink-0">
-                  <span class="text-xs font-bold px-2 py-0.5 rounded-md {% if b.is_full %}bg-rose-500/20 text-rose-300 border border-rose-500/30{% elif b.available_seats <= 3 %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% else %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% endif %}">
-                    {% if b.is_full %}Full (50/50){% else %}{{ b.available_seats }} seats free{% endif %}
-                  </span>
-                  <div class="text-[10px] text-slate-400 font-mono mt-0.5">{{ b.occupied }}/{{ b.capacity }} occupied</div>
-                </div>
-              </div>
-
-              <!-- Journey Timings Row -->
-              <div class="grid grid-cols-2 gap-2 text-xs bg-white/5 p-2.5 rounded-xl border border-white/5">
-                <div>
-                  <div class="text-[10px] uppercase font-bold text-slate-400">Campus Departs</div>
-                  <div class="text-xs font-bold text-amber-400 font-mono">{{ b.evening_depart_time }}</div>
-                </div>
-                <div>
-                  <div class="text-[10px] uppercase font-bold text-slate-400">Drop-off ETA</div>
-                  <div class="text-xs font-bold text-emerald-400 font-mono">{{ b.evening_drop_time }} (~{{ b.travel_mins }}m)</div>
-                </div>
-              </div>
-
-              <!-- Driver & Request Action -->
-              <div class="flex items-center justify-between gap-2 pt-1 border-t border-white/10 text-xs">
-                <div class="text-[11px] text-slate-400 truncate">
-                  👨‍✈️ {{ b.driver_name }} ({{ b.driver_phone }})
-                </div>
-
-                {% if today_change_request and today_change_request.status == 'approved' and today_change_request.target_bus_id == b.bus_id %}
-                  <span class="text-xs px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold flex items-center gap-1">
-                    ✓ Currently Approved
-                  </span>
-                {% elif b.is_full %}
-                  <button type="button" disabled class="text-xs px-3 py-1.5 rounded-xl bg-rose-500/10 text-rose-400/60 border border-rose-500/20 font-bold cursor-not-allowed">
-                    Bus Full (50/50)
-                  </button>
-                {% else %}
-                  <button 
-                    type="button" 
-                    onclick="openChangeRequestModal({{ b.bus_id }}, '{{ b.bus_reg }}', '{{ b.route_code }}', {{ b.dest_stop_id }}, '{{ b.dest_stop_name }}', '{{ b.evening_drop_time }}')"
-                    class="text-xs font-bold px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-md btn-press flex items-center gap-1"
-                  >
-                    <span>Request Bus</span>
-                    <span>→</span>
-                  </button>
-                {% endif %}
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-          {% else %}
-          <div class="p-4 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-400 text-center space-y-1">
-            <div>No direct evening buses found stopping at {{ evening_search_stop.name }}.</div>
-            <div class="text-[11px] text-slate-500">Try choosing a nearby transit interchange or consult the campus helpdesk.</div>
-          </div>
-          {% endif %}
+        {% else %}
+        <span class="chip chip-rose text-xs">Unassigned</span>
         {% endif %}
       </div>
-
     </div>
 
-  </div>
+    <!-- HERO CARD (Crimson Gradient or Green when <=2 min / Here) -->
+    <div id="student-hero"
+         class="relative rounded-[26px] p-6 text-white overflow-hidden shadow-2xl transition-all duration-500 {% if is_not_travelling %}bg-gradient-to-br from-[#384358] to-[#1B2539] border border-[#384358]{% elif is_stop_arrived or (eta_min is not none and eta_min <= 2) %}bg-gradient-to-br from-[#059669] to-[#064e3b] shadow-[0_18px_40px_rgba(5,150,105,0.4)]{% else %}bg-gradient-to-br from-[#B51A2B] to-[#541A2E] shadow-[0_18px_40px_rgba(84,26,46,0.55)]{% endif %}">
+      
+      <!-- Radial Peach Glow in top right -->
+      <div class="pointer-events-none absolute -top-10 -right-10 w-44 h-44 rounded-full bg-[#FFA586]/25 blur-2xl"></div>
 
-  <!-- ==================== 3. 1-TAP SOS & HELPDESK SUPPORT CENTER ==================== -->
-  <div class="glass-panel rounded-2xl p-5 border border-rose-500/30 bg-gradient-to-br from-rose-950/30 via-slate-900/60 to-slate-900/90 shadow-xl space-y-4">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-      <div class="flex items-center gap-2.5">
-        <span class="text-2xl">🚨</span>
+      <div class="relative z-10 space-y-4">
+        <!-- Label and expected time -->
+        <div class="flex items-center justify-between text-xs font-extrabold uppercase tracking-wider text-[#FFD5C6]">
+          <span id="hero-tagline" class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-[#FFA586] inline-block animate-ping"></span>
+            {% if is_not_travelling %}
+              NOT TRAVELLING TODAY
+            {% elif is_stop_arrived %}
+              BUS IS AT YOUR STOP NOW
+            {% elif eta_min is not none and eta_min <= 2 %}
+              ARRIVING NOW • BOARDING SOON
+            {% else %}
+              ARRIVING AT YOUR STOP
+            {% endif %}
+          </span>
+          <span id="hero-expected" class="text-right text-[11px] font-mono text-[#F4EFEC]/90">
+            {% if is_not_travelling %}
+              Skip Active
+            {% elif morning_pickup_time %}
+              Expected {{ morning_pickup_time }}
+            {% else %}
+              Expected ~{{ now_clock_str }}
+            {% endif %}
+          </span>
+        </div>
+
+        <!-- Huge ETA Display -->
+        <div class="flex items-baseline justify-between">
+          <div id="hero-eta-block">
+            {% if is_not_travelling %}
+              <div class="text-3xl font-extrabold font-display tracking-tight text-[#FF8A8A]">
+                Skipped
+              </div>
+            {% elif is_stop_arrived %}
+              <div class="text-4xl sm:text-5xl font-extrabold font-display tracking-tight text-[#F4EFEC]">
+                Bus is here!
+              </div>
+            {% elif eta_min is not none %}
+              <div class="flex items-baseline gap-2">
+                <span id="hero-eta-num" class="text-6xl sm:text-7xl font-extrabold font-display tracking-tighter text-[#F4EFEC]">
+                  {{ eta_min }}
+                </span>
+                <span class="text-xl font-bold text-[#FFA586] uppercase tracking-wide">
+                  min
+                </span>
+              </div>
+            {% else %}
+              <div class="text-4xl font-extrabold font-display tracking-tight text-[#F4EFEC]">
+                On Schedule
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Seat Chip (No capacity/crowd numbers for students) -->
+          <div class="text-right">
+            <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#FFD5C6]">Your Seat</div>
+            <div class="text-xl font-extrabold font-mono text-[#FFA586]">
+              #{{ stu.seat_no or '1' }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Stop name and stops away info -->
+        <div class="flex items-center justify-between text-xs text-[#F4EFEC]/90 font-medium pt-1 border-t border-white/10">
+          <div class="flex items-center gap-1.5 truncate">
+            <svg class="w-4 h-4 text-[#FFA586] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span class="font-bold text-white truncate">{{ stu.stop_name or 'Boarding Stop' }}</span>
+          </div>
+          <div class="text-right text-[11px] font-semibold text-[#FFD5C6] shrink-0">
+            {% if stops_away is not none and stops_away >= 0 %}
+              {% if stops_away == 0 %}At your stop{% elif stops_away == 1 %}Next stop is yours{% else %}{{ stops_away }} stops away{% endif %}
+            {% else %}
+              Live GPS linked
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Thin Progress Bar (Peach on white 18%) -->
+        <div class="w-full bg-white/20 h-1.5 rounded-full overflow-hidden">
+          <div id="hero-progress-bar"
+               class="h-full bg-[#FFA586] rounded-full transition-all duration-700"
+               style="width: {% if eta_min is not none and eta_min > 0 %}{{ [10, 100 - (eta_min * 6)]|max }}%{% else %}100%{% endif %};"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE GPS MAP (200px tall, rounded 24px) -->
+    <div class="card p-3 rounded-[24px] space-y-2 relative overflow-hidden">
+      <div class="flex items-center justify-between px-1">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#161E2F] border border-[#384358] text-[11px] font-bold text-[#34D399]">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#34D399] animate-pulse"></span>
+            <span>Live GPS · 3s ago</span>
+          </span>
+        </div>
+        <a href="/map" class="text-xs font-bold text-[#FFA586] hover:underline flex items-center gap-1">
+          <span>Full map</span>
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </div>
+
+      <div id="student-mini-map" class="w-full h-[200px] rounded-[20px] overflow-hidden bg-[#1B2539] border border-[#384358]"></div>
+    </div>
+
+    <!-- DRIVER CARD (No capacity / crowding shown to students) -->
+    <div id="driver-card"
+         class="card p-4 rounded-[22px] flex items-center justify-between gap-3 {% if stu.has_substitute %}border-[#FFA586] bg-gradient-to-r from-[#242F49] to-[#384358]/50{% endif %}">
+      <div class="flex items-center gap-3">
+        <!-- Avatar Initial -->
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center font-extrabold text-base font-display {% if stu.has_substitute %}bg-[#FFA586] text-[#161E2F]{% else %}bg-[#384358] text-[#FFA586]{% endif %}">
+          {{ stu.driver_name[:1] if stu.driver_name else 'D' }}
+        </div>
         <div>
-          <h3 class="text-base font-extrabold font-display text-white">
-            Emergency SOS & Commute Assistance Center
-          </h3>
-          <p class="text-xs text-slate-400">
-            Instant helpdesk support, emergency broadcast, and missed bus recovery assistance.
+          <div class="flex items-center gap-1.5">
+            <h3 class="font-extrabold text-sm text-[#F4EFEC]">
+              {{ stu.driver_name or 'Assigned Driver' }}
+            </h3>
+            {% if stu.has_substitute %}
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-[#FFA586]/20 text-[#FFA586] border border-[#FFA586]/40 uppercase">
+              Substitute
+            </span>
+            {% endif %}
+          </div>
+          <p class="text-xs text-[#AEB5C6]">
+            {% if stu.has_substitute %}
+              Covering for {{ stu.regular_driver_name or 'Ramesh' }} · today
+            {% else %}
+              Your bus driver · {{ stu.bus_reg }}
+            {% endif %}
           </p>
         </div>
       </div>
-      <div class="text-xs font-mono text-rose-300/80 bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20 self-start sm:self-auto">
-        24/7 Campus Control Active
-      </div>
-    </div>
 
-    <!-- 4 Action Tiles including Bus Complaint Box -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      
-      <!-- Button 1: Instant SOS Trigger -->
-      <button 
-        type="button" 
-        onclick="openModal('sos-modal')"
-        class="glass-card rounded-xl p-4 border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 transition-all text-left space-y-2 btn-press group relative overflow-hidden"
-      >
-        <div class="flex items-center justify-between">
-          <span class="text-xl">🆘</span>
-          <span class="w-3 h-3 rounded-full bg-rose-500 sos-pulse"></span>
-        </div>
-        <div>
-          <div class="text-sm font-extrabold text-rose-300 group-hover:text-rose-200">Instant SOS Alert</div>
-          <div class="text-[11px] text-slate-300 leading-snug mt-0.5">
-            Broadcast emergency alert with live GPS to Campus Control.
-          </div>
-        </div>
-      </button>
-
-      <!-- Button 2: Missed My Bus Assistant -->
-      <button 
-        type="button" 
-        onclick="openModal('missed-bus-modal')"
-        class="glass-card rounded-xl p-4 border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 transition-all text-left space-y-2 btn-press group"
-      >
-        <div class="flex items-center justify-between">
-          <span class="text-xl">⚠️</span>
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">1-Tap</span>
-        </div>
-        <div>
-          <div class="text-sm font-extrabold text-amber-300 group-hover:text-amber-200">I Missed My Bus</div>
-          <div class="text-[11px] text-slate-300 leading-snug mt-0.5">
-            Notify transport desk & view alternative buses passing your stop.
-          </div>
-        </div>
-      </button>
-
-      <!-- Button 3: Drop Bus Complaint & Problem -->
-      <button 
-        type="button" 
-        onclick="openModal('complaint-modal')"
-        class="glass-card rounded-xl p-4 border border-blue-500/40 bg-blue-500/10 hover:bg-blue-500/20 transition-all text-left space-y-2 btn-press group"
-      >
-        <div class="flex items-center justify-between">
-          <span class="text-xl">📮</span>
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">Feedback</span>
-        </div>
-        <div>
-          <div class="text-sm font-extrabold text-blue-300 group-hover:text-blue-200">Drop Complaint</div>
-          <div class="text-[11px] text-slate-300 leading-snug mt-0.5">
-            Report bus issues, AC/cleanliness, delays, or driving problems.
-          </div>
-        </div>
-      </button>
-
-      <!-- Button 4: Direct Transport Desk Hotline -->
-      <a 
-        href="tel:+919848099999"
-        class="glass-card rounded-xl p-4 border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all text-left space-y-2 btn-press group block"
-      >
-        <div class="flex items-center justify-between">
-          <span class="text-xl">📞</span>
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Direct Line</span>
-        </div>
-        <div>
-          <div class="text-sm font-extrabold text-emerald-300 group-hover:text-emerald-200">Transport Helpdesk</div>
-          <div class="text-[11px] text-slate-300 leading-snug mt-0.5 font-mono">
-            +91 98480 99999 • Coordinator
-          </div>
-        </div>
+      <!-- Call Button -->
+      <a href="tel:{{ stu.driver_phone or '+919848011001' }}"
+         class="h-10 px-4 rounded-xl bg-[#FFA586] hover:bg-[#ffb59c] text-[#161E2F] font-bold text-xs flex items-center gap-1.5 shadow transition-all active:scale-95 shrink-0"
+         aria-label="Call Driver">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <span>Call</span>
       </a>
-
-    </div>
-  </div>
-
-  <!-- ==================== 4. INTERACTIVE METRO-STYLE STOP PROGRESSION ==================== -->
-  <div class="glass-panel rounded-2xl p-5 border border-white/10 shadow-xl space-y-4">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/10">
-      <div class="flex items-center gap-2.5">
-        <span class="text-xl">🚏</span>
-        <div>
-          <h3 class="text-base font-extrabold font-display text-white">
-            Live Route Stop Progression ({{ stu.route_code }})
-          </h3>
-          <div class="text-xs text-slate-400">
-            Real-time metro progression line showing bus transit through each designated stop.
-          </div>
-        </div>
-      </div>
-      <div class="text-xs text-slate-400 flex items-center gap-2">
-        <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> Passed</span>
-        <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Current Bus</span>
-        <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-400"></span> Your Stop</span>
-      </div>
     </div>
 
-    <!-- Progression Stepper (Scrollable List) -->
-    <div class="metro-track space-y-3 py-2 pl-2">
-      {% for sp in stop_progression %}
-      <div 
-        class="metro-step-item relative flex items-start gap-4 p-3 rounded-xl transition-all {% if sp.is_my_stop %}bg-amber-500/15 border border-amber-400/40 glow-amber{% elif sp.status == 'current' %}bg-blue-500/10 border border-blue-400/30{% else %}hover:bg-white/5 border border-transparent{% endif %} {% if sp.status == 'passed' %}is-passed{% elif sp.status == 'current' %}is-current{% endif %}"
-        onclick="focusStopOnMap({{ sp.lat }}, {{ sp.lng }}, '{{ sp.name }}')"
-        style="cursor: pointer;"
-      >
-        <!-- Left Node Icon -->
-        <div class="relative z-10 shrink-0 mt-0.5">
-          {% if sp.status == 'current' %}
-            <div class="w-8 h-8 rounded-full bg-amber-400 text-slate-900 flex items-center justify-center font-bold text-sm shadow-lg ring-4 ring-amber-400/30 animate-bounce">
-              🚌
-            </div>
-          {% elif sp.status == 'passed' %}
-            <div class="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center font-bold text-xs">
-              ✓
-            </div>
-          {% elif sp.is_my_stop %}
-            <div class="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-extrabold flex items-center justify-center text-xs shadow-md ring-4 ring-amber-400/40">
-              🚏
-            </div>
-          {% else %}
-            <div class="w-8 h-8 rounded-full bg-white/10 text-slate-300 border border-white/20 flex items-center justify-center font-mono text-xs">
-              {{ sp.seq_num }}
-            </div>
-          {% endif %}
-        </div>
-
-        <!-- Stop Information -->
-        <div class="flex-1 min-w-0">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="text-sm sm:text-base font-extrabold {% if sp.is_my_stop %}text-amber-300{% else %}text-white{% endif %} font-display">
-                {{ sp.name }}
-              </span>
-
-              {% if sp.is_my_stop %}
-                <span class="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 shadow-sm">
-                  ★ YOUR BOARDING STOP
-                </span>
-              {% endif %}
-
-              {% if sp.status == 'current' %}
-                <span class="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  BUS AT THIS STOP
-                </span>
-              {% endif %}
-            </div>
-
-            <!-- ETA Badge -->
-            <div class="text-xs font-mono shrink-0">
-              {% if sp.status == 'passed' %}
-                <span class="text-slate-500">Departed</span>
-              {% elif sp.status == 'current' %}
-                <span class="text-emerald-400 font-bold">Boarding now</span>
-              {% elif sp.eta_min is not none %}
-                <span class="text-amber-400 font-bold">~{{ sp.eta_min }} min</span>
-              {% else %}
-                <span class="text-slate-400">+{{ sp.offset_min }}m from start</span>
-              {% endif %}
-            </div>
-          </div>
-
-          <div class="text-xs text-slate-400 mt-0.5 flex items-center gap-3">
-            <span>{{ sp.landmark or 'Designated Route Stop' }}</span>
-            <span class="text-[11px] text-amber-400/80 underline font-medium hover:text-amber-300">Tap to view on map ↗</span>
-          </div>
-        </div>
-
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-
-  <!-- ==================== 5. INTERACTIVE LIVE MAP RADAR ==================== -->
-  <div class="glass-panel rounded-2xl p-4 sm:p-5 border border-white/10 space-y-3 shadow-xl">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-      <div class="flex items-center gap-2">
-        <span class="text-lg">🗺️</span>
-        <div>
-          <h3 class="text-sm font-bold uppercase tracking-wider text-white font-display">
-            Live Route Radar & GPS Locator
-          </h3>
-          <div class="text-[11px] text-slate-400">Map updates bus beacon every 8s automatically</div>
-        </div>
-      </div>
-      
-      <!-- Map View Control Quick Buttons -->
-      <div class="flex items-center gap-2 flex-wrap">
-        <button 
-          type="button" 
-          onclick="centerOnMyStop()" 
-          class="text-xs px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-all font-semibold btn-press"
-        >
-          🎯 Focus My Stop
-        </button>
-        <button 
-          type="button" 
-          onclick="centerOnBus()" 
-          class="text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 transition-all font-semibold btn-press"
-        >
-          🚌 Locate Bus
-        </button>
-        <button 
-          type="button" 
-          onclick="fitFullRoute()" 
-          class="text-xs px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition-all font-semibold btn-press"
-        >
-          🔄 Full Route
-        </button>
-      </div>
-    </div>
-
-    <!-- Map Canvas Container -->
-    <div id="student-map" class="h-72 sm:h-80 w-full rounded-xl overflow-hidden border border-white/10 relative"></div>
-  </div>
-
-  <!-- ==================== 6. OFFICIAL COMMUTE SCHEDULE ==================== -->
-  <div class="glass-card rounded-2xl p-4 sm:p-5 border border-white/10 space-y-4 shadow-xl">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/10">
-      <div class="flex items-center gap-2.5">
-        <span class="text-lg">📅</span>
-        <div>
-          <h3 class="text-sm font-bold uppercase tracking-wider text-white font-display">
-            Official Commute Schedule for {{ stu.stop_name }}
-          </h3>
-          <div class="text-[11px] text-slate-400">Designated Runs: Route {{ stu.route_code }} • Bus {{ stu.bus_reg }}</div>
-        </div>
-      </div>
-      <div class="text-xs font-mono text-amber-300 bg-amber-400/10 px-2.5 py-1 rounded-lg border border-amber-400/20 self-start sm:self-auto">
-        Clock: <strong>{{ now_clock_str }}</strong>
-      </div>
-    </div>
-
-    <!-- 3 Real Transit Duty Runs -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-      {% for trip in daily_trips %}
-      <div class="p-4 rounded-xl border transition-all flex flex-col justify-between gap-3 {% if trip.badge_color == 'emerald' %}bg-emerald-950/30 border-emerald-500/40 glow-emerald{% elif trip.badge_color == 'amber' %}bg-amber-950/30 border-amber-500/40 glow-amber{% else %}bg-white/5 border-white/10 text-slate-300{% endif %}">
-        
-        <div>
-          <div class="flex items-center justify-between">
-            <span class="text-xl">{{ trip.icon }}</span>
-            <span class="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full {% if trip.badge_color == 'emerald' %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% elif trip.badge_color == 'amber' %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% else %}bg-white/10 text-slate-400 border border-white/10{% endif %}">
-              {{ trip.badge }}
-            </span>
-          </div>
-
-          <div class="mt-2.5">
-            <div class="text-xs font-bold text-slate-300">{{ trip.title }}</div>
-            <div class="text-xl font-extrabold font-display text-white mt-0.5">{{ trip.time }}</div>
-            <div class="text-[11px] text-slate-300 mt-0.5 leading-snug">{{ trip.sub }}</div>
-          </div>
-        </div>
-
-        <div class="text-[11px] text-slate-400 pt-2 border-t border-white/10 font-mono flex items-center justify-between">
-          <span>Status:</span>
-          <span class="text-white font-semibold">{{ trip.timing_note }}</span>
-        </div>
-
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-
-</div>
-
-<!-- ==================== MODALS ==================== -->
-
-<!-- MODAL 1: EMERGENCY SOS BROADCAST -->
-<div id="sos-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
-  <div class="glass-panel w-full max-w-md rounded-2xl border border-rose-500/50 bg-slate-950 p-6 space-y-5 shadow-2xl relative">
-    <div class="flex items-start justify-between">
+    <!-- "Alert me 5 min before" Toggle Row -->
+    <div class="card p-4 rounded-[20px] flex items-center justify-between gap-4">
       <div class="flex items-center gap-3">
-        <div class="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/40 flex items-center justify-center text-2xl sos-pulse">
-          🚨
+        <div class="w-9 h-9 rounded-xl bg-[#FFA586]/10 flex items-center justify-center text-[#FFA586]">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         </div>
         <div>
-          <h3 class="text-lg font-extrabold text-white font-display">Campus Emergency SOS</h3>
-          <p class="text-xs text-rose-300">Direct Alert to Transport & Security Desk</p>
+          <div class="text-sm font-bold text-[#F4EFEC]">Alert me 5 min before</div>
+          <div class="text-xs text-[#AEB5C6]">Sound + notification when bus approaches</div>
         </div>
       </div>
-      <button type="button" onclick="closeModal('sos-modal')" class="text-slate-400 hover:text-white text-lg font-bold p-1">✕</button>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" id="notify-5min-toggle" class="sr-only peer" {% if stu.notify_5min %}checked{% endif %} onchange="toggleNotify5Min(this.checked)">
+        <div class="w-11 h-6 bg-[#161E2F] border border-[#384358] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#AEB5C6] peer-checked:after:bg-[#161E2F] after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FFA586] peer-checked:border-[#FFA586]"></div>
+      </label>
     </div>
 
-    <div class="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-200 space-y-1">
-      <div><strong>Student:</strong> {{ stu.name }} ({{ stu.roll_no }})</div>
-      <div><strong>Route & Bus:</strong> {{ stu.route_code }} • {{ stu.bus_reg }}</div>
-      <div><strong>Pickup Stop:</strong> {{ stu.stop_name }}</div>
-    </div>
-
-    <form id="sos-form" onsubmit="submitSOS(event)" class="space-y-4">
-      <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Emergency Nature</label>
-        <select id="sos-kind" class="w-full rounded-xl bg-slate-900 border border-white/15 text-white px-3.5 py-2.5 text-xs">
-          <option value="sos">Emergency / Safety Concern</option>
-          <option value="breakdown">Bus Breakdown / Stranded</option>
-          <option value="complaint">Driver / Transit Incident</option>
-          <option value="other">Medical / Urgent Support</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">Quick Note (Optional)</label>
-        <textarea id="sos-note" rows="2" placeholder="e.g. Stranded at LB Nagar stop, need immediate support..." class="w-full rounded-xl bg-slate-900 border border-white/15 text-white p-3 text-xs focus:outline-none focus:border-rose-400"></textarea>
-      </div>
-
-      <div class="flex gap-2.5 pt-2">
-        <button type="button" onclick="closeModal('sos-modal')" class="w-1/3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs border border-white/10">
-          Cancel
-        </button>
-        <button type="submit" id="sos-submit-btn" class="w-2/3 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-extrabold text-xs shadow-lg shadow-rose-900/50 btn-press">
-          🚨 Broadcast SOS Alert
-        </button>
-      </div>
-    </form>
-
-    <div class="pt-2 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
-      <span>Direct Hotline:</span>
-      <a href="tel:+919848088888" class="text-rose-400 font-mono font-bold hover:underline">📞 +91 98480 88888</a>
+    <!-- "Not travelling today" Button (Peach dashed outline with Undo) -->
+    <div class="pt-1">
+      <button
+        type="button"
+        id="btn-toggle-travel"
+        onclick="toggleTravelToday()"
+        class="w-full py-3.5 px-4 rounded-2xl border-[1.5px] border-dashed border-[#FFA586] text-[#FFA586] hover:bg-[#FFA586]/10 active:scale-[0.99] font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <span id="btn-toggle-travel-label">
+          {% if is_not_travelling %}You're marked as not travelling · Tap to Undo{% else %}Not travelling today? Tap to skip bus pickup{% endif %}
+        </span>
+      </button>
     </div>
   </div>
-</div>
 
-<!-- MODAL 2: MISSED BUS ASSISTANT -->
-<div id="missed-bus-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
-  <div class="glass-panel w-full max-w-lg rounded-2xl border border-amber-500/50 bg-slate-950 p-6 space-y-5 shadow-2xl relative">
-    <div class="flex items-start justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center justify-center text-2xl">
-          ⚠️
-        </div>
+  <!-- ==================== TAB VIEW 2: ROUTES (GOING SOMEWHERE ELSE) ==================== -->
+  <div id="view-routes" class="tab-view space-y-4 hidden">
+    <div>
+      <h2 class="text-2xl font-extrabold font-display text-[#F4EFEC]">Routes</h2>
+      <p class="text-xs text-[#AEB5C6] mt-0.5">Going somewhere else from college?</p>
+    </div>
+
+    <!-- Crimson Hero Search Box -->
+    <div class="card p-5 rounded-[24px] bg-gradient-to-br from-[#B51A2B] to-[#541A2E] text-white shadow-xl space-y-4">
+      <div class="space-y-3">
+        <!-- From Field (Fixed to College Campus) -->
         <div>
-          <h3 class="text-lg font-extrabold text-white font-display">Missed Bus Assistant</h3>
-          <p class="text-xs text-amber-300">Alternative Options for Stop: {{ stu.stop_name }}</p>
-        </div>
-      </div>
-      <button type="button" onclick="closeModal('missed-bus-modal')" class="text-slate-400 hover:text-white text-lg font-bold p-1">✕</button>
-    </div>
-
-    <div class="text-xs text-slate-300 leading-relaxed">
-      Don't worry! We've notified the fleet coordinator. Here are alternative college buses and solutions available for you:
-    </div>
-
-    <!-- Alternative Buses List -->
-    <div class="space-y-2">
-      <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Alternative Buses Passing Near Your Stop</div>
-      {% if alt_buses %}
-        <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
-          {% for b in alt_buses %}
-          <div class="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between gap-2">
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold text-white" style="background: {{ b.route_color or '#3b82f6' }};">
-                  {{ b.route_code }}
-                </span>
-                <span class="text-xs font-bold text-white">{{ b.bus_reg }}</span>
-              </div>
-              <div class="text-[11px] text-slate-300 mt-0.5">{{ b.route_name }}</div>
-              <div class="text-[10px] text-slate-400">Driver: {{ b.driver_name or 'Staff Driver' }}</div>
-            </div>
-            {% if b.driver_phone %}
-            <a href="tel:{{ b.driver_phone }}" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30">
-              📞 Call
-            </a>
-            {% endif %}
+          <label class="text-[10px] font-extrabold uppercase tracking-wider text-[#FFD5C6] block mb-1">
+            Origin
+          </label>
+          <div class="w-full h-11 rounded-xl bg-[#161E2F]/80 border border-white/20 px-3 flex items-center gap-2 text-xs font-bold text-white">
+            <span class="w-2 h-2 rounded-full bg-[#34D399]"></span>
+            <span>College Campus Main Gate</span>
           </div>
+        </div>
+
+        <!-- To Field (Search Destination) -->
+        <div>
+          <label class="text-[10px] font-extrabold uppercase tracking-wider text-[#FFD5C6] block mb-1">
+            Where do you want to go?
+          </label>
+          <div class="relative">
+            <input
+              type="text"
+              id="route-dest-search"
+              placeholder="Search destination stop (e.g. LB Nagar, Uppal...)"
+              oninput="searchRoutesTo(this.value)"
+              class="w-full h-12 rounded-xl bg-[#161E2F] border border-white/20 px-4 text-xs font-bold text-white placeholder-slate-400 focus:outline-none focus:border-[#FFA586] focus:ring-2 focus:ring-[#FFA586]/30"
+            >
+          </div>
+        </div>
+
+        <!-- Quick Pick Chips of Popular Stops -->
+        <div class="flex items-center gap-1.5 flex-wrap pt-1">
+          <span class="text-[10px] uppercase font-bold text-[#FFD5C6]">Quick:</span>
+          {% for stop_name in ['LB Nagar', 'Dilsukhnagar', 'Uppal', 'Mehdipatnam', 'Secunderabad Stn', 'Kukatpally'] %}
+          <button type="button" onclick="selectQuickStop('{{ stop_name }}')" class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold text-white transition-all">
+            {{ stop_name }}
+          </button>
           {% endfor %}
         </div>
+      </div>
+    </div>
+
+    <!-- Evening Results Section -->
+    <div id="route-search-results" class="space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 id="search-results-heading" class="text-xs font-extrabold uppercase tracking-wider text-[#AEB5C6]">
+          BUSES FROM COLLEGE TODAY
+        </h3>
+        <span class="text-[11px] text-[#FFA586] font-semibold">4:30 PM departures</span>
+      </div>
+
+      <div id="route-results-container" class="space-y-2">
+        {% if evening_buses_results %}
+          {% for b in evening_buses_results %}
+          <div class="card p-4 rounded-2xl space-y-3 hover:border-[#FFA586] transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="px-2.5 py-1 rounded-lg text-xs font-extrabold text-white font-mono" style="background: {{ b.route_color or '#B51A2B' }};">
+                  {{ b.route_code }}
+                </span>
+                <span class="text-sm font-extrabold text-[#F4EFEC] font-display">{{ b.bus_reg }}</span>
+              </div>
+              <span class="chip {% if b.seat_hint == 'Seats free' %}chip-emerald{% else %}chip-amber{% endif %} text-[11px]">
+                {{ b.seat_hint }}
+              </span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-xs pt-1 border-t border-[#384358] font-mono text-[#AEB5C6]">
+              <div>Departs: <strong class="text-[#F4EFEC]">4:30 PM</strong></div>
+              <div>Arrives: <strong class="text-[#F4EFEC]">{{ b.arrive_time }}</strong></div>
+              <div>Gate: <strong class="text-[#FFA586]">{{ b.gate or 'Gate 2' }}</strong></div>
+            </div>
+            <button type="button" onclick="requestBusPass('{{ b.bus_id }}', '{{ b.bus_reg }}')" class="w-full py-2 rounded-xl bg-[#FFA586]/15 hover:bg-[#FFA586]/25 border border-[#FFA586]/40 text-[#FFA586] text-xs font-bold transition-all">
+              Request 1-Day Pass for this Bus
+            </button>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="card p-6 text-center text-xs text-[#AEB5C6] space-y-2">
+            <p>Type a stop name or click a quick chip above to see evening buses leaving College for that area.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Full Routes Directory for Browsing -->
+    <div class="pt-4 space-y-3">
+      <h3 class="text-xs font-extrabold uppercase tracking-wider text-[#AEB5C6]">
+        ALL 10 CAMPUS ROUTES
+      </h3>
+      <div class="space-y-2">
+        {% for r in all_routes %}
+        <details class="card p-3 rounded-2xl group transition-all">
+          <summary class="flex items-center justify-between cursor-pointer list-none font-bold text-xs text-[#F4EFEC]">
+            <div class="flex items-center gap-2.5">
+              <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold text-white" style="background: {{ r.r.color }};">
+                {{ r.r.code }}
+              </span>
+              <span>{{ r.r.name }}</span>
+            </div>
+            <span class="text-[#FFA586] group-open:rotate-180 transition-transform">▼</span>
+          </summary>
+          <div class="mt-3 pt-3 border-t border-[#384358] space-y-2 text-xs text-[#AEB5C6]">
+            <div class="font-semibold text-[#FFA586]">Stops:</div>
+            <div class="flex flex-wrap gap-1">
+              {% for s in r.stops %}
+              <span class="px-2 py-0.5 rounded-md bg-[#161E2F] border border-[#384358] text-[11px]">
+                {{ s.name }} (+{{ s.offset_min }}m)
+              </span>
+              {% endfor %}
+            </div>
+          </div>
+        </details>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TAB VIEW 3: NOTICES ==================== -->
+  <div id="view-notices" class="tab-view space-y-4 hidden">
+    <div>
+      <h2 class="text-2xl font-extrabold font-display text-[#F4EFEC]">Notices</h2>
+      <p class="text-xs text-[#AEB5C6] mt-0.5">Live transit updates, delay broadcasts &amp; campus alerts</p>
+    </div>
+
+    <div class="space-y-2.5">
+      {% if route_alerts %}
+        {% for a in route_alerts %}
+        <div class="card p-4 rounded-2xl border-l-4 space-y-1.5 {% if a.kind == 'cancelled' or 'SOS' in a.message %}border-l-[#E5384B] bg-gradient-to-r from-[#541A2E]/30 to-[#242F49]{% elif a.kind == 'delay' %}border-l-[#FBBF24]{% elif a.kind == 'diversion' %}border-l-[#FFA586]{% else %}border-l-[#34D399]{% endif %}">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold uppercase tracking-wider {% if a.kind == 'cancelled' or 'SOS' in a.message %}text-[#FF8A8A]{% elif a.kind == 'delay' %}text-[#FBBF24]{% else %}text-[#FFA586]{% endif %}">
+              {{ a.kind|upper }}
+            </span>
+            <span class="text-[11px] text-[#AEB5C6] font-mono">{{ a.age or 'Just now' }}</span>
+          </div>
+          <p class="text-xs font-semibold text-[#F4EFEC] leading-relaxed">
+            {{ a.message }}
+          </p>
+        </div>
+        {% endfor %}
       {% else %}
-        <div class="p-3 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-400">
-          No other direct routes at this specific stop. Campus standby van can be dispatched.
+        <div class="card p-8 text-center text-xs text-[#AEB5C6] space-y-2">
+          <div class="w-10 h-10 rounded-2xl bg-[#34D399]/10 text-[#34D399] flex items-center justify-center mx-auto">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div class="font-bold text-[#F4EFEC]">No Active Disruptions</div>
+          <p>All buses operating on schedule with regular routes.</p>
         </div>
       {% endif %}
     </div>
-
-    <!-- Quick Report to Dispatch -->
-    <div class="pt-2 flex flex-col gap-2">
-      <button 
-        type="button" 
-        onclick="reportMissedBus()" 
-        id="report-missed-btn"
-        class="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs shadow-lg btn-press"
-      >
-        📢 Send "Missed Bus" Alert to Transport Desk
-      </button>
-
-      <a 
-        href="tel:+919848099999" 
-        class="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs text-center border border-white/15 flex items-center justify-center gap-1.5 btn-press"
-      >
-        <span>📞</span>
-        <span>Call Transport Coordinator (+91 98480 99999)</span>
-      </a>
-    </div>
   </div>
-</div>
 
-<!-- MODAL 3: DIGITAL STUDENT TRANSIT PASS -->
-<div id="pass-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
-  <div class="w-full max-w-sm rounded-3xl border border-amber-400/40 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 p-6 space-y-5 shadow-2xl relative text-white">
-    <!-- Close -->
-    <button type="button" onclick="closeModal('pass-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg font-bold">✕</button>
-
-    <!-- Pass Header -->
-    <div class="text-center pb-3 border-b border-white/10 space-y-1">
-      <div class="text-[10px] font-extrabold uppercase tracking-widest text-amber-400">Campus Fleet Transit Card</div>
-      <div class="text-base font-extrabold font-display">{{ college or 'Engineering College' }}</div>
-      <div class="text-[10px] text-slate-400">Session 2026-2027 • Valid Until: 30-Jun-2027</div>
+  <!-- ==================== TAB VIEW 4: HELP & SOS ==================== -->
+  <div id="view-help" class="tab-view space-y-4 hidden">
+    <div>
+      <h2 class="text-2xl font-extrabold font-display text-[#F4EFEC]">Help &amp; Safety</h2>
+      <p class="text-xs text-[#AEB5C6] mt-0.5">Emergency assistance, ticket support, and transport desk</p>
     </div>
 
-    <!-- Student Monogram & Details -->
-    <div class="flex items-center gap-4">
-      <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 font-extrabold font-display text-2xl flex items-center justify-center shadow-lg shrink-0">
-        {{ stu.name[:2].upper() }}
-      </div>
-      <div>
-        <h4 class="text-base font-extrabold text-white">{{ stu.name }}</h4>
-        <div class="text-xs font-mono text-amber-300 font-bold">{{ stu.roll_no }}</div>
-        <div class="text-[11px] text-slate-300 mt-0.5">Department of Computer Science</div>
-      </div>
-    </div>
-
-    <!-- Approved 1-Day Bus Reassignment Pass Stamp (If Authorized) -->
-    {% if today_change_request and today_change_request.status == 'approved' %}
-    <div class="p-3 rounded-2xl bg-gradient-to-r from-emerald-500/25 to-amber-500/20 border-2 border-emerald-400 text-xs space-y-1 shadow-lg">
-      <div class="flex items-center justify-between">
-        <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-300 flex items-center gap-1">
-          <span>★</span> <span>1-Day Reassignment</span>
-        </span>
-        <span class="text-[9px] px-2 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-extrabold">ADMIN APPROVED</span>
-      </div>
-      <div class="text-sm font-bold text-white">Evening Bus: {{ today_change_request.target_bus_reg }} ({{ today_change_request.target_route_code }})</div>
-      <div class="text-[11px] text-amber-300 font-medium">Evening Drop-off: <strong>{{ today_change_request.target_stop_name }}</strong></div>
-      <div class="text-[10px] text-slate-300 font-mono">Departs College Campus: 04:30 PM • Admin Verified</div>
-    </div>
-    {% endif %}
-
-    <!-- Key Card Specs -->
-    <div class="grid grid-cols-2 gap-2 text-xs">
-      <div class="p-2.5 rounded-xl bg-white/5 border border-white/10">
-        <div class="text-[10px] uppercase text-slate-400 font-bold">Assigned Bus</div>
-        <div class="text-sm font-extrabold text-white mt-0.5">{{ stu.bus_reg }}</div>
-        <div class="text-[10px] text-amber-400 font-bold">Route: {{ stu.route_code }}</div>
-      </div>
-      <div class="p-2.5 rounded-xl bg-white/5 border border-white/10">
-        <div class="text-[10px] uppercase text-slate-400 font-bold">Reserved Seat</div>
-        <div class="text-sm font-extrabold text-amber-400 mt-0.5 font-mono">Seat #{{ stu.seat_no or '14' }}</div>
-        <div class="text-[10px] text-emerald-400 font-semibold">Priority Boarding</div>
-      </div>
-    </div>
-
-    <div class="p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs">
-      <div class="text-[10px] uppercase text-slate-400 font-bold">Designated Boarding Stop</div>
-      <div class="text-sm font-bold text-white mt-0.5">🚏 {{ stu.stop_name }}</div>
-    </div>
-
-    <!-- Simulated QR / Barcode for Driver Reader -->
-    <div class="pt-2 text-center space-y-2">
-      <div class="bg-white p-3 rounded-xl inline-block mx-auto shadow-inner">
-        <!-- SVG simulated QR code pattern -->
-        <svg class="w-32 h-32 text-slate-950" viewBox="0 0 100 100" fill="currentColor">
-          <rect x="5" y="5" width="25" height="25" fill="#000"/>
-          <rect x="10" y="10" width="15" height="15" fill="#fff"/>
-          <rect x="13" y="13" width="9" height="9" fill="#000"/>
-          
-          <rect x="70" y="5" width="25" height="25" fill="#000"/>
-          <rect x="75" y="10" width="15" height="15" fill="#fff"/>
-          <rect x="78" y="13" width="9" height="9" fill="#000"/>
-
-          <rect x="5" y="70" width="25" height="25" fill="#000"/>
-          <rect x="10" y="75" width="15" height="15" fill="#fff"/>
-          <rect x="13" y="78" width="9" height="9" fill="#000"/>
-
-          <rect x="35" y="10" width="6" height="20" fill="#000"/>
-          <rect x="45" y="15" width="15" height="6" fill="#000"/>
-          <rect x="35" y="40" width="30" height="20" fill="#000"/>
-          <rect x="40" y="45" width="10" height="10" fill="#fff"/>
-          <rect x="70" y="40" width="20" height="10" fill="#000"/>
-          <rect x="10" y="40" width="15" height="8" fill="#000"/>
-          <rect x="40" y="70" width="20" height="15" fill="#000"/>
-          <rect x="70" y="70" width="15" height="20" fill="#000"/>
-        </svg>
-      </div>
-      <div class="text-[10px] font-mono text-slate-400">
-        CLG-NAV-PASS:{{ stu.roll_no }}-BUS{{ stu.bus_id }}-S{{ stu.seat_no or '14' }}
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL 4: REQUEST 1-DAY BUS REASSIGNMENT -->
-<div id="bus-change-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
-  <div class="glass-panel w-full max-w-md rounded-2xl border border-amber-500/50 bg-slate-950 p-6 space-y-5 shadow-2xl relative text-white">
-    <div class="flex items-start justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center justify-center text-2xl">
-          📝
-        </div>
-        <div>
-          <h3 class="text-lg font-extrabold text-white font-display">Bus Reassignment Request</h3>
-          <p class="text-xs text-amber-300">1-Day Evening Travel Authorization</p>
-        </div>
-      </div>
-      <button type="button" onclick="closeModal('bus-change-modal')" class="text-slate-400 hover:text-white text-lg font-bold p-1">✕</button>
-    </div>
-
-    <!-- Request Details Summary Box -->
-    <div class="p-3.5 rounded-xl bg-white/5 border border-white/10 text-xs space-y-1.5">
-      <div class="flex justify-between">
-        <span class="text-slate-400">Target Evening Bus:</span>
-        <strong id="modal-req-bus" class="text-white font-mono"></strong>
-      </div>
-      <div class="flex justify-between">
-        <span class="text-slate-400">Evening Destination:</span>
-        <strong id="modal-req-stop" class="text-amber-400 font-bold"></strong>
-      </div>
-      <div class="flex justify-between">
-        <span class="text-slate-400">Campus Departure:</span>
-        <span class="text-slate-200 font-mono">Today at 04:30 PM (Main Gate)</span>
-      </div>
-      <div class="flex justify-between">
-        <span class="text-slate-400">Estimated Arrival:</span>
-        <span id="modal-req-arr" class="text-emerald-400 font-mono font-bold"></span>
-      </div>
-    </div>
-
-    <form method="post" action="/api/student/request-bus-change" class="space-y-4">
-      <input type="hidden" id="modal-input-bus-id" name="target_bus_id">
-      <input type="hidden" id="modal-input-stop-id" name="target_stop_id">
-
-      <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-          Reason for Bus Reassignment <span class="text-amber-400">*</span>
-        </label>
-        <textarea 
-          name="reason" 
-          rows="3" 
-          required 
-          placeholder="e.g. Visiting group partner for project work / family visit / staying at relative's house..."
-          class="glass-input w-full rounded-xl p-3 text-xs text-white placeholder-slate-500 border border-white/20 focus:border-amber-400 focus:outline-none"
-        ></textarea>
-        <p class="text-[10px] text-slate-400 mt-1">
-          This reason will be reviewed by the Transport Administrator before approval.
+    <!-- Big SOS Card at Top (Held for 3s to trigger) -->
+    <div class="card p-6 rounded-[26px] bg-gradient-to-br from-[#E5384B] via-[#B51A2B] to-[#541A2E] text-white shadow-2xl text-center space-y-4 border border-[#E5384B]/40">
+      <div class="space-y-1">
+        <h3 class="text-lg font-extrabold tracking-tight font-display">EMERGENCY ASSISTANCE</h3>
+        <p class="text-xs text-[#FFD5C6] max-w-xs mx-auto">
+          Hold for 3 seconds. Sends your live GPS location to the transport office and driver.
         </p>
       </div>
 
-      <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 leading-snug">
-        ⚠️ <strong>Notice:</strong> Submitting this request sends an alert to Admin. <strong>You can only travel on this bus after the Admin approves your request.</strong>
+      <!-- 3-Second Hold Interactive Circular Button with SVG Progress Ring -->
+      <div class="relative w-28 h-28 mx-auto flex items-center justify-center select-none touch-none">
+        <!-- Circular Progress Ring -->
+        <svg class="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="54" stroke="rgba(255,255,255,0.2)" stroke-width="6" fill="none" />
+          <circle id="sos-ring" cx="60" cy="60" r="54" stroke="#FFA586" stroke-width="6" fill="none"
+                  stroke-dasharray="339.29" stroke-dashoffset="339.29" stroke-linecap="round" class="transition-all duration-75" />
+        </svg>
+
+        <button
+          type="button"
+          id="sos-hold-btn"
+          onmousedown="startSosHold()"
+          onmouseup="cancelSosHold()"
+          onmouseleave="cancelSosHold()"
+          ontouchstart="startSosHold(event)"
+          ontouchend="cancelSosHold()"
+          class="w-20 h-20 rounded-full bg-white text-[#B51A2B] font-extrabold text-xl font-display flex flex-col items-center justify-center shadow-2xl active:scale-95 transition-transform cursor-pointer">
+          <span class="tracking-wider">SOS</span>
+          <span id="sos-counter" class="text-[9px] font-mono text-[#541A2E] font-bold">HOLD</span>
+        </button>
       </div>
 
-      <div class="flex gap-2.5 pt-2">
-        <button 
-          type="button" 
-          onclick="closeModal('bus-change-modal')" 
-          class="w-1/3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs border border-white/10"
-        >
-          Cancel
-        </button>
-        <button 
-          type="submit" 
-          class="w-2/3 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold text-xs shadow-lg btn-press flex items-center justify-center gap-1.5"
-        >
-          <span>🚀</span>
-          <span>Submit Request to Admin</span>
-        </button>
+      <div class="text-[11px] text-[#FFD5C6] font-medium">
+        Accidental tap prevention active · Continuous live GPS tracking
       </div>
-    </form>
-  </div>
-</div>
+    </div>
 
-<!-- MODAL 5: BUS COMPLAINT & FEEDBACK BOX -->
-<div id="complaint-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
-  <div class="glass-panel w-full max-w-md rounded-2xl border border-blue-500/50 bg-slate-950 p-6 space-y-4 shadow-2xl relative text-white">
-    <div class="flex items-start justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-11 h-11 rounded-2xl bg-blue-500/20 text-blue-300 border border-blue-500/40 flex items-center justify-center text-xl">
-          📮
+    <!-- 2x2 Grid of Help Tiles -->
+    <div class="grid grid-cols-2 gap-3">
+      <!-- Tile 1: Bus Missed -->
+      <button type="button" onclick="openMissedBusModal()" class="card p-4 rounded-2xl text-left hover:border-[#FFA586] transition-all space-y-2 group">
+        <div class="w-10 h-10 rounded-xl bg-[#FFA586]/10 text-[#FFA586] flex items-center justify-center group-hover:bg-[#FFA586] group-hover:text-[#161E2F] transition-colors">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         </div>
         <div>
-          <h3 class="text-base font-extrabold text-white font-display">Bus Complaint & Problem Box</h3>
-          <p class="text-xs text-blue-300">Confidential Report for Bus {{ stu.bus_reg }}</p>
+          <div class="font-extrabold text-sm text-[#F4EFEC]">Bus missed</div>
+          <div class="text-[11px] text-[#AEB5C6] line-clamp-1">See next bus or options</div>
         </div>
+      </button>
+
+      <!-- Tile 2: Complaint -->
+      <button type="button" onclick="openComplaintModal()" class="card p-4 rounded-2xl text-left hover:border-[#FFA586] transition-all space-y-2 group">
+        <div class="w-10 h-10 rounded-xl bg-[#FFA586]/10 text-[#FFA586] flex items-center justify-center group-hover:bg-[#FFA586] group-hover:text-[#161E2F] transition-colors">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div>
+          <div class="font-extrabold text-sm text-[#F4EFEC]">Complaint</div>
+          <div class="text-[11px] text-[#AEB5C6] line-clamp-1">Driving, clean, timing</div>
+        </div>
+      </button>
+
+      <!-- Tile 3: Transport Desk -->
+      <a href="tel:+919848099999" class="card p-4 rounded-2xl text-left hover:border-[#FFA586] transition-all space-y-2 group">
+        <div class="w-10 h-10 rounded-xl bg-[#FFA586]/10 text-[#FFA586] flex items-center justify-center group-hover:bg-[#FFA586] group-hover:text-[#161E2F] transition-colors">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <div>
+          <div class="font-extrabold text-sm text-[#F4EFEC]">Transport desk</div>
+          <div class="text-[11px] text-[#AEB5C6] line-clamp-1">Call 7 AM to 7 PM</div>
+        </div>
+      </a>
+
+      <!-- Tile 4: My Requests -->
+      <button type="button" onclick="openRequestsModal()" class="card p-4 rounded-2xl text-left hover:border-[#FFA586] transition-all space-y-2 group">
+        <div class="w-10 h-10 rounded-xl bg-[#FFA586]/10 text-[#FFA586] flex items-center justify-center group-hover:bg-[#FFA586] group-hover:text-[#161E2F] transition-colors">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <div>
+          <div class="font-extrabold text-sm text-[#F4EFEC]">My requests</div>
+          <div class="text-[11px] text-[#AEB5C6] line-clamp-1">Track ticket status</div>
+        </div>
+      </button>
+    </div>
+
+    <!-- Recent Ticket Status Preview -->
+    {% if my_requests %}
+    <div class="card p-4 rounded-2xl space-y-2">
+      <div class="flex items-center justify-between text-xs font-bold text-[#AEB5C6]">
+        <span>LATEST TICKET</span>
+        <span class="chip {% if my_requests[0].status == 'resolved' %}chip-emerald{% elif my_requests[0].status == 'in_review' %}chip-sky{% else %}chip-amber{% endif %} text-[10px]">
+          {{ my_requests[0].status|upper }}
+        </span>
       </div>
-      <button type="button" onclick="closeModal('complaint-modal')" class="text-slate-400 hover:text-white text-lg font-bold p-1">✕</button>
+      <div class="text-xs font-bold text-[#F4EFEC]">{{ my_requests[0].reason or my_requests[0].type|title }}</div>
+      <p class="text-[11px] text-[#AEB5C6] truncate">{{ my_requests[0].message }}</p>
+      {% if my_requests[0].admin_note %}
+      <div class="p-2 rounded-lg bg-[#161E2F] text-[10px] text-[#FFA586] font-mono">
+        Note: {{ my_requests[0].admin_note }}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- ==================== SOS SENT ACTIVE SCREEN MODAL (SECTION 3.6) ==================== -->
+<div id="sos-sent-modal" class="fixed inset-0 z-50 bg-gradient-to-b from-[#541A2E] to-[#161E2F] text-white p-6 hidden flex flex-col justify-between overflow-y-auto">
+  <div class="space-y-6 pt-6 text-center max-w-sm mx-auto">
+    <!-- Pulsing Red SOS Circle -->
+    <div class="relative w-24 h-24 mx-auto flex items-center justify-center">
+      <span class="absolute inset-0 rounded-full bg-[#E5384B] animate-ping opacity-75"></span>
+      <div class="relative w-24 h-24 rounded-full bg-[#E5384B] flex items-center justify-center text-white font-extrabold text-3xl font-display shadow-2xl">
+        SOS
+      </div>
     </div>
 
-    <div class="p-3 rounded-xl bg-white/5 border border-white/10 text-xs flex justify-between">
-      <span>Student: <strong>{{ stu.name }} ({{ stu.roll_no }})</strong></span>
-      <span>Bus: <strong class="text-amber-400 font-mono">{{ stu.bus_reg }}</strong></span>
+    <div class="space-y-1">
+      <h2 class="text-2xl font-extrabold font-display tracking-tight text-white">Help is on the way</h2>
+      <p id="sos-sent-desc" class="text-xs text-[#FFD5C6] leading-relaxed">
+        Your live GPS location was transmitted to the College Transport Office and driver <span class="font-bold text-white">{{ stu.driver_name or 'on duty' }}</span>.
+      </p>
+      <div id="sos-ack-badge" class="hidden inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#34D399]/20 border border-[#34D399]/40 text-[#34D399] text-xs font-bold mt-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#34D399] animate-pulse"></span>
+        <span>Office has acknowledged your SOS</span>
+      </div>
     </div>
 
-    <form id="complaint-form" onsubmit="submitComplaint(event)" class="space-y-3.5 text-xs">
+    <!-- WHAT IS HAPPENING? Reason Buttons -->
+    <div class="space-y-2 text-left pt-2">
+      <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#FFD5C6]">
+        WHAT IS HAPPENING? (TAP TO SPECIFY)
+      </div>
+      <div class="grid grid-cols-2 gap-2" id="sos-reasons-group">
+        {% for r in ['Medical', 'Harassment', 'Accident', 'Feeling unsafe', 'Other'] %}
+        <button type="button" onclick="selectSosReason('{{ r }}', this)"
+                class="sos-reason-btn py-2.5 px-3 rounded-xl bg-[#242F49] border border-[#384358] text-xs font-bold text-[#F4EFEC] hover:border-[#E5384B] transition-all text-center">
+          {{ r }}
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Action Buttons -->
+  <div class="space-y-3 pt-6 max-w-sm mx-auto w-full">
+    <a href="tel:+919848099999" class="w-full h-12 rounded-2xl bg-[#FFA586] text-[#161E2F] font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      <span>Call Transport Desk (+91 98480 99999)</span>
+    </a>
+
+    <a href="tel:112" class="w-full h-12 rounded-2xl bg-[#E5384B] text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span>Emergency Police &amp; Medical (112)</span>
+    </a>
+
+    <button type="button" onclick="confirmCancelSos()" class="w-full py-2.5 text-xs text-[#FF8A8A] hover:underline font-bold">
+      I'm safe now, cancel SOS
+    </button>
+  </div>
+</div>
+
+<!-- ==================== MODALS FOR HELP TILES ==================== -->
+<!-- Modal: Bus Missed -->
+<div id="missed-bus-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div class="card p-6 max-w-sm w-full space-y-4 border border-[#384358]">
+    <div class="flex items-center justify-between">
+      <h3 class="font-extrabold text-base text-[#F4EFEC]">Missed Your Bus?</h3>
+      <button type="button" onclick="closeMissedBusModal()" class="text-[#AEB5C6] hover:text-white">✕</button>
+    </div>
+    <p class="text-xs text-[#AEB5C6]">
+      Alternative buses scheduled near {{ stu.stop_name or 'your stop' }} or departing soon from Campus:
+    </p>
+    <div class="space-y-2 max-h-48 overflow-y-auto">
+      {% for b in alt_buses %}
+      <div class="p-3 rounded-xl bg-[#161E2F] border border-[#384358] flex items-center justify-between text-xs">
+        <div>
+          <div class="font-bold text-[#FFA586]">{{ b.route_code }} · {{ b.bus_reg }}</div>
+          <div class="text-[11px] text-[#AEB5C6]">{{ b.driver_name or 'Driver' }}</div>
+        </div>
+        <a href="tel:{{ b.driver_phone or '+919848099999' }}" class="px-2.5 py-1 rounded-lg bg-[#FFA586] text-[#161E2F] font-bold text-[11px]">
+          Call
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    <button type="button" onclick="logMissedBusTicket()" class="w-full btn btn-primary text-xs">
+      Log Missed Bus with Dispatch Office
+    </button>
+  </div>
+</div>
+
+<!-- Modal: Complaint Box -->
+<div id="complaint-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div class="card p-6 max-w-sm w-full space-y-4 border border-[#384358]">
+    <div class="flex items-center justify-between">
+      <h3 class="font-extrabold text-base text-[#F4EFEC]">Drop Complaint / Report</h3>
+      <button type="button" onclick="closeComplaintModal()" class="text-[#AEB5C6] hover:text-white">✕</button>
+    </div>
+    <form id="complaint-form" onsubmit="submitStudentComplaint(event)" class="space-y-3">
       <div>
-        <label class="block font-bold text-slate-300 mb-1">Issue Category</label>
-        <select id="complaint-cat" class="glass-input w-full rounded-xl px-3 py-2 text-white bg-slate-900 border-white/20">
-          <option value="AC / Fans / Seating">❄️ AC / Fans / Broken Seating</option>
-          <option value="Cleanliness & Sanitation">🧹 Cleanliness & Bus Hygiene</option>
-          <option value="Rash Driving / Overspeeding">⚠️ Rash Driving / Safety Concern</option>
-          <option value="Punctuality & Delay">⏰ Delay / Bus Arrived Very Late</option>
-          <option value="Overcrowding">👥 Overcrowding / Seat Allotment</option>
-          <option value="Driver / Staff Conduct">💬 Driver / Staff Behavior</option>
-          <option value="Other Problem">❓ Other Vehicle Problem</option>
+        <label class="text-[11px] font-bold uppercase text-[#AEB5C6] block mb-1">Category</label>
+        <select id="complaint-category" class="w-full rounded-xl bg-[#161E2F] border border-[#384358] p-2.5 text-xs text-white">
+          <option value="Driving & Speed">Driving &amp; Speed</option>
+          <option value="Timing & Late Arrival">Timing &amp; Late Arrival</option>
+          <option value="Cleanliness & AC">Cleanliness &amp; Maintenance</option>
+          <option value="Route Deviation">Skipped Stop / Deviation</option>
+          <option value="Other Issue">Other Transit Issue</option>
         </select>
       </div>
-
       <div>
-        <label class="block font-bold text-slate-300 mb-1">Describe the Problem</label>
-        <textarea 
-          id="complaint-msg" 
-          rows="3" 
-          required 
-          placeholder="e.g. The AC in the back 3 rows is not blowing cold air and windows are jammed..."
-          class="glass-input w-full rounded-xl p-3 text-white placeholder-slate-500 border-white/20 focus:border-amber-400 focus:outline-none"
-        ></textarea>
-        <p class="text-[10px] text-slate-400 mt-1">Logged directly into the Campus Transport Desk grievance register.</p>
+        <label class="text-[11px] font-bold uppercase text-[#AEB5C6] block mb-1">Details</label>
+        <textarea id="complaint-message" rows="3" required placeholder="Describe what occurred on Bus {{ stu.bus_reg }}..." class="w-full rounded-xl bg-[#161E2F] border border-[#384358] p-2.5 text-xs text-white placeholder-slate-500"></textarea>
       </div>
-
-      <div class="flex gap-2.5 pt-1">
-        <button type="button" onclick="closeModal('complaint-modal')" class="w-1/3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs border border-white/10">
-          Cancel
-        </button>
-        <button type="submit" id="complaint-submit-btn" class="w-2/3 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-extrabold text-xs shadow-md btn-press flex items-center justify-center gap-1.5">
-          <span>📬</span>
-          <span>Submit Complaint</span>
-        </button>
-      </div>
+      <button type="submit" class="w-full btn btn-primary text-xs">
+        Submit to Transport Desk
+      </button>
     </form>
   </div>
 </div>
 
+<!-- Modal: My Requests Track -->
+<div id="requests-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div class="card p-6 max-w-sm w-full space-y-4 border border-[#384358]">
+    <div class="flex items-center justify-between">
+      <h3 class="font-extrabold text-base text-[#F4EFEC]">My Help Requests</h3>
+      <button type="button" onclick="closeRequestsModal()" class="text-[#AEB5C6] hover:text-white">✕</button>
+    </div>
+    <div class="space-y-2 max-h-60 overflow-y-auto">
+      {% for req in my_requests %}
+      <div class="p-3 rounded-xl bg-[#161E2F] border border-[#384358] text-xs space-y-1">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-[#FFA586]">{{ req.type|upper }}</span>
+          <span class="chip {% if req.status == 'resolved' %}chip-emerald{% elif req.status == 'in_review' %}chip-sky{% else %}chip-amber{% endif %} text-[10px]">
+            {{ req.status }}
+          </span>
+        </div>
+        <p class="text-[11px] text-[#AEB5C6]">{{ req.message }}</p>
+        {% if req.admin_note %}
+        <div class="text-[10px] text-[#34D399] font-mono">Response: {{ req.admin_note }}</div>
+        {% endif %}
+      </div>
+      {% else %}
+      <p class="text-xs text-[#AEB5C6] text-center py-4">No prior help desk requests filed.</p>
+      {% endfor %}
+    </div>
+    <button type="button" onclick="closeRequestsModal()" class="w-full btn btn-secondary text-xs">
+      Close
+    </button>
+  </div>
+</div>
+
+<!-- ==================== FLOATING BOTTOM BAR (SECTION 1 & 3) ==================== -->
+<nav class="fixed bottom-[14px] left-[12px] right-[12px] max-w-[480px] mx-auto h-[68px] rounded-[24px] bg-[#242F49]/95 backdrop-blur-md border border-[#384358] shadow-2xl z-40 px-2 flex items-center justify-between" aria-label="Bottom Navigation">
+  
+  <!-- Tab 1: My Bus -->
+  <button type="button" onclick="switchStudentTab('mybus')" id="tab-nav-mybus"
+          class="flex-1 h-[52px] rounded-2xl flex flex-col items-center justify-center gap-1 transition-all bg-[#FFA586] text-[#161E2F] font-bold">
+    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="6" width="18" height="12" rx="3"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+    <span class="text-[11px] font-extrabold tracking-tight">My Bus</span>
+  </button>
+
+  <!-- Tab 2: Routes -->
+  <button type="button" onclick="switchStudentTab('routes')" id="tab-nav-routes"
+          class="flex-1 h-[52px] rounded-2xl flex flex-col items-center justify-center gap-1 transition-all text-[#AEB5C6] hover:text-white">
+    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/><circle cx="12" cy="12" r="10"/></svg>
+    <span class="text-[11px] font-bold tracking-tight">Routes</span>
+  </button>
+
+  <!-- Tab 3: Notices -->
+  <button type="button" onclick="switchStudentTab('notices')" id="tab-nav-notices"
+          class="relative flex-1 h-[52px] rounded-2xl flex flex-col items-center justify-center gap-1 transition-all text-[#AEB5C6] hover:text-white">
+    {% if route_alerts %}
+    <span id="notices-unread-badge" class="absolute top-1.5 right-4 w-2 h-2 rounded-full bg-[#E5384B] ring-2 ring-[#242F49]"></span>
+    {% endif %}
+    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <span class="text-[11px] font-bold tracking-tight">Notices</span>
+  </button>
+
+  <!-- Tab 4: Help (Red Accent) -->
+  <button type="button" onclick="switchStudentTab('help')" id="tab-nav-help"
+          class="flex-1 h-[52px] rounded-2xl flex flex-col items-center justify-center gap-1 transition-all text-[#FF8A8A] hover:text-white">
+    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span class="text-[11px] font-bold tracking-tight">Help</span>
+  </button>
+
+</nav>
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
-async function submitComplaint(e) {
-  e.preventDefault();
-  const cat = document.getElementById('complaint-cat').value;
-  const msg = document.getElementById('complaint-msg').value.trim();
-  const btn = document.getElementById('complaint-submit-btn');
-  if (!msg) return;
-
-  btn.disabled = true;
-  btn.textContent = 'Submitting...';
-
-  try {
-    const res = await fetch('/api/student/complaint', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ category: cat, message: msg })
-    });
-    const d = await res.json();
-    if (d.ok) {
-      toast(d.message);
-      closeModal('complaint-modal');
-      document.getElementById('complaint-msg').value = '';
-    } else {
-      alert(d.message || 'Failed to submit complaint');
-    }
-  } catch (err) {
-    alert('Network error submitting complaint.');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<span>📬</span> <span>Submit Complaint</span>';
-  }
-}
-
-// ==================== AUDIO CHIME SYSTEM ====================
-let chimeEnabled = true;
-function toggleChimeAlert() {
-  chimeEnabled = !chimeEnabled;
-  const icon = document.getElementById('chime-icon');
-  const label = document.getElementById('chime-label');
-  if (chimeEnabled) {
-    icon.textContent = '🔔';
-    label.textContent = 'Alert: On';
-    toast('Arrival chime notifications enabled.');
-  } else {
-    icon.textContent = '🔕';
-    label.textContent = 'Alert: Off';
-    toast('Arrival chime notifications muted.');
-  }
-}
-
-function playArrivalChime() {
-  if (!chimeEnabled) return;
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15); // A5
-    gain.gain.setValueAtTime(0.2, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.6);
-  } catch (e) {}
-}
-
-// ==================== MODAL HELPERS ====================
-function openModal(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.remove('hidden');
-}
-function closeModal(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.add('hidden');
-}
-
-// ==================== 1-TAP SOS TRANSMISSION ====================
-async function submitSOS(e) {
-  e.preventDefault();
-  const btn = document.getElementById('sos-submit-btn');
-  const kind = document.getElementById('sos-kind').value;
-  const note = document.getElementById('sos-note').value;
-  
-  btn.disabled = true;
-  btn.textContent = 'Broadcasting SOS...';
-
-  try {
-    const res = await fetch('/api/student/sos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kind: kind, note: note })
-    });
-    const data = await res.json();
-    if (data.ok) {
-      closeModal('sos-modal');
-      playArrivalChime();
-      toast('🚨 SOS Alert broadcasted to Campus Control Room! Help is on the way.');
-    } else {
-      toast(data.message || 'Error transmitting SOS. Please call the hotline.');
-    }
-  } catch (err) {
-    toast('Error sending alert. Please call +91 98480 88888 immediately.');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '🚨 Broadcast SOS Alert';
-  }
-}
-
-// ==================== REPORT MISSED BUS ====================
-async function reportMissedBus() {
-  const btn = document.getElementById('report-missed-btn');
-  btn.disabled = true;
-  btn.textContent = 'Sending Notice...';
-
-  try {
-    const res = await fetch('/api/student/sos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kind: 'missed_bus', note: 'Student reported missed pickup.' })
-    });
-    const data = await res.json();
-    if (data.ok) {
-      toast('⚠️ Missed bus alert logged with Transport Dispatch. Please check alternatives.');
-      btn.textContent = '✓ Notice Transmitted';
-    } else {
-      toast('Could not log report. Please call helpdesk.');
-      btn.textContent = 'Retry Report';
-      btn.disabled = false;
-    }
-  } catch (e) {
-    toast('Error sending notice. Please call helpdesk.');
-    btn.disabled = false;
-  }
-}
-
-// ==================== "NOT TRAVELLING TODAY" TOGGLE ====================
-async function toggleTravelStatus() {
-  const btn = document.getElementById('toggle-travel-btn');
-  const txt = document.getElementById('travel-status-text');
-  btn.disabled = true;
-  btn.textContent = 'Updating...';
-
-  try {
-    const res = await fetch('/api/student/toggle-travel', { method: 'POST' });
-    const data = await res.json();
-    if (data.ok) {
-      if (data.travelling) {
-        txt.textContent = 'Travelling today (Boarding at {{ stu.stop_name }})';
-        txt.className = 'text-xs sm:text-sm font-bold text-emerald-400';
-        btn.textContent = 'Not Travelling Today';
-        btn.className = 'text-xs font-bold px-4 py-2.5 rounded-xl transition-all btn-press shrink-0 bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30';
-        toast('Status updated: You are marked as Travelling today.');
+// Tab Switching
+function switchStudentTab(tab) {
+  ['mybus', 'routes', 'notices', 'help'].forEach(t => {
+    const view = document.getElementById('view-' + t);
+    const nav = document.getElementById('tab-nav-' + t);
+    if (t === tab) {
+      view.classList.remove('hidden');
+      if (t === 'help') {
+        nav.className = "flex-1 h-[52px] rounded-2xl flex flex-col items-center justify-center gap-1 transition-all bg-[#E5384B] text-white font-extrabold shadow";
       } else {
-        txt.textContent = 'Not travelling today (Driver manifest updated)';
-        txt.className = 'text-xs sm:text-sm font-bold text-rose-400';
-        btn.textContent = "I'm Travelling Today";
-        btn.className = 'text-xs font-bold px-4 py-2.5 rounded-xl transition-all btn-press shrink-0 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30';
-        toast('Driver manifest updated: You are marked as Not Travelling.');
+        nav.className = "flex-1 h-[52px] rounded-2xl flex flex-col items-center justify-center gap-1 transition-all bg-[#FFA586] text-[#161E2F] font-extrabold shadow";
+      }
+    } else {
+      view.classList.add('hidden');
+      if (t === 'help') {
+        nav.className = "flex-1 h-[52px] rounded-2xl flex flex-col items-center justify-center gap-1 transition-all text-[#FF8A8A] hover:text-white";
+      } else {
+        nav.className = "flex-1 h-[52px] rounded-2xl flex flex-col items-center justify-center gap-1 transition-all text-[#AEB5C6] hover:text-white";
       }
     }
-  } catch (e) {
-    toast('Error updating travel status.');
-  } finally {
-    btn.disabled = false;
+  });
+
+  if (tab === 'notices') {
+    const badge = document.getElementById('notices-unread-badge');
+    if (badge) badge.classList.add('hidden');
+  }
+
+  if (tab === 'mybus' && window.studentMap) {
+    setTimeout(() => { window.studentMap.invalidateSize(); }, 200);
   }
 }
 
-// ==================== LEAFLET MAP RADAR & INTERACTION ====================
-let map = null;
-let busMarker = null;
-let stopMarkers = {};
-let routeBounds = null;
-let myStopLatLng = [{{ stu.stop_lat or 17.385 }}, {{ stu.stop_lng or 78.4867 }}];
-let currentBusLatLng = null;
+// 5-Min Notification Toggle
+function toggleNotify5Min(enabled) {
+  fetch('/api/student/notify-pref', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notify_5min: enabled })
+  }).then(r => r.json()).then(data => {
+    if (enabled && "Notification" in window && Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+  });
+}
 
-const mapEl = document.getElementById('student-map');
-if (mapEl) {
-  map = L.map('student-map', { zoomControl: true });
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors',
-    maxZoom: 19
-  }).addTo(map);
-
-  const stops = {{ stops|tojson }};
-  const stuStopId = {{ stu.stop_id or 0 }};
-  const routeColor = '{{ stu.route_color or "#f59e0b" }}';
-
-  if (stops && stops.length > 0) {
-    const latlngs = stops.map(s => [s.lat, s.lng]);
-    const polyline = L.polyline(latlngs, {
-      color: routeColor,
-      weight: 5,
-      opacity: 0.9,
-      dashArray: '8 6'
-    }).addTo(map);
-
-    routeBounds = polyline.getBounds();
-
-    // Plot Stops
-    stops.forEach(s => {
-      const isMyStop = (s.stop_id === stuStopId);
-      if (isMyStop) {
-        myStopLatLng = [s.lat, s.lng];
-      }
-
-      const icon = L.divIcon({
-        className: 'custom-pin',
-        html: isMyStop 
-          ? `<div style="width:22px;height:22px;border-radius:50%;background:#f59e0b;border:3px solid #fff;box-shadow:0 0 16px #f59e0b;display:flex;align-items:center;justify-content:center;font-size:11px;">🚏</div>`
-          : `<div style="width:10px;height:10px;border-radius:50%;background:#94a3b8;border:2px solid #0f172a;"></div>`,
-        iconSize: [isMyStop ? 22 : 10, isMyStop ? 22 : 10]
-      });
-
-      const m = L.marker([s.lat, s.lng], { icon: icon })
-        .bindPopup(`
-          <div style="padding:4px;">
-            <div style="font-weight:bold;color:#f8fafc;font-size:13px;">${s.name}</div>
-            ${isMyStop ? '<div style="color:#fbbf24;font-weight:bold;font-size:11px;margin-top:2px;">★ Your Boarding Stop</div>' : ''}
-            <div style="color:#94a3b8;font-size:11px;margin-top:2px;">${s.landmark || 'Designated Stop'}</div>
-          </div>
-        `)
-        .addTo(map);
-
-      stopMarkers[s.stop_id] = m;
+// Skip Travel Toggle
+function toggleTravelToday() {
+  fetch('/api/student/toggle-travel', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      window.location.reload();
     });
+}
 
-    // Locate Bus
-    function updateBus() {
-      fetch('/api/live/{{ stu.route_id or 0 }}')
-        .then(r => r.json())
-        .then(d => {
-          if (d.available && d.lat && d.lng) {
-            currentBusLatLng = [d.lat, d.lng];
-            const busIcon = L.divIcon({
-              className: 'bus-marker',
-              html: `<div style="font-size:26px;filter:drop-shadow(0 0 10px #f59e0b);transform:scale(1.1);">🚌</div>`,
-              iconSize: [30, 30]
-            });
-            if (!busMarker) {
-              busMarker = L.marker([d.lat, d.lng], { icon: busIcon }).addTo(map);
-            } else {
-              busMarker.setLatLng([d.lat, d.lng]);
-            }
-            busMarker.bindPopup(`
-              <div style="padding:4px;">
-                <div style="font-weight:bold;color:#f8fafc;font-size:13px;">Bus: ${d.bus}</div>
-                <div style="color:#34d399;font-weight:bold;font-size:11px;">${d.label}</div>
-              </div>
-            `);
-          }
-        }).catch(e => {});
+// 3-Second Hold SOS
+let sosTimer = null;
+let sosHoldStart = 0;
+let activeSosId = null;
+let sosLocationInterval = null;
+
+function startSosHold(e) {
+  if (e && e.cancelable) e.preventDefault();
+  sosHoldStart = Date.now();
+  const ring = document.getElementById('sos-ring');
+  const counter = document.getElementById('sos-counter');
+  const circumference = 339.29;
+
+  sosTimer = setInterval(() => {
+    const elapsed = Date.now() - sosHoldStart;
+    const progress = Math.min(1, elapsed / 3000);
+    const offset = circumference * (1 - progress);
+    ring.style.strokeDashoffset = offset;
+    
+    const rem = Math.ceil((3000 - elapsed) / 1000);
+    if (rem > 0) {
+      counter.textContent = rem + 's';
+    } else {
+      counter.textContent = 'SENT!';
+      clearInterval(sosTimer);
+      triggerSosAlert();
     }
-
-    map.fitBounds(routeBounds, { padding: [30, 30] });
-    updateBus();
-    setInterval(updateBus, 8000);
-  }
+  }, 50);
 }
 
-// Map Focus Helpers
-function centerOnMyStop() {
-  if (map && myStopLatLng) {
-    map.flyTo(myStopLatLng, 16, { animate: true, duration: 1 });
+function cancelSosHold() {
+  if (sosTimer) {
+    clearInterval(sosTimer);
+    sosTimer = null;
   }
+  const ring = document.getElementById('sos-ring');
+  if (ring) ring.style.strokeDashoffset = '339.29';
+  const counter = document.getElementById('sos-counter');
+  if (counter) counter.textContent = 'HOLD';
 }
 
-function centerOnBus() {
-  if (map && currentBusLatLng) {
-    map.flyTo(currentBusLatLng, 16, { animate: true, duration: 1 });
+function triggerSosAlert() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      postSos(pos.coords.latitude, pos.coords.longitude);
+    }, () => {
+      postSos(null, null);
+    }, { timeout: 4000 });
   } else {
-    toast('Live bus position not yet received.');
+    postSos(null, null);
   }
 }
 
-function fitFullRoute() {
-  if (map && routeBounds) {
-    map.fitBounds(routeBounds, { padding: [30, 30], animate: true });
-  }
-}
-
-function focusStopOnMap(lat, lng, name) {
-  if (map) {
-    map.flyTo([lat, lng], 16, { animate: true, duration: 0.8 });
-    toast(`Centered on ${name}`);
-  }
-}
-
-// ==================== 1-DAY BUS CHANGE REASSIGNMENT ====================
-function openChangeRequestModal(busId, busReg, routeCode, stopId, stopName, arrTime) {
-  document.getElementById('modal-input-bus-id').value = busId;
-  document.getElementById('modal-input-stop-id').value = stopId;
-  document.getElementById('modal-req-bus').textContent = `${busReg} (Route ${routeCode})`;
-  document.getElementById('modal-req-stop').textContent = stopName;
-  document.getElementById('modal-req-arr').textContent = arrTime;
-  openModal('bus-change-modal');
-}
-
-async function handleDestChange(destStopId) {
-  if (!destStopId) {
-    document.getElementById('dest-buses-container').innerHTML = '';
-    return;
-  }
-  const loading = document.getElementById('dest-bus-loading');
-  const container = document.getElementById('dest-buses-container');
-  if (loading) loading.classList.remove('hidden');
-
-  try {
-    const res = await fetch(`/api/student/find-evening-buses?dest_stop_id=${destStopId}`);
-    const data = await res.json();
-    if (loading) loading.classList.add('hidden');
-
-    if (!data.buses || data.buses.length === 0) {
-      container.innerHTML = `
-        <div class="p-4 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-400 text-center space-y-1">
-          <div>No direct evening buses found stopping at this destination.</div>
-          <div class="text-[11px] text-slate-500">Try choosing an adjacent transit hub or contact the transport desk.</div>
-        </div>
-      `;
-      return;
+function postSos(lat, lng) {
+  fetch('/api/sos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ lat: lat, lng: lng, reason: 'Emergency SOS alert' })
+  }).then(r => r.json()).then(data => {
+    if (data.ok) {
+      activeSosId = data.id;
+      showSosSentScreen();
     }
+  });
+}
 
-    const stopName = data.buses[0].dest_stop_name;
-    let html = `
-      <div class="flex items-center justify-between pb-1 border-b border-white/10">
-        <div class="text-xs font-bold text-white flex items-center gap-1.5">
-          <span>🚏</span>
-          <span>Available Evening Buses to <strong class="text-amber-400 font-display">${stopName}</strong>:</span>
-        </div>
-        <span class="text-[11px] text-slate-400 font-mono">${data.buses.length} bus(es) found</span>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-    `;
+function showSosSentScreen() {
+  document.getElementById('sos-sent-modal').classList.remove('hidden');
+  // Geolocation polling every 10s
+  if (sosLocationInterval) clearInterval(sosLocationInterval);
+  sosLocationInterval = setInterval(() => {
+    if (activeSosId && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        fetch(`/api/sos/${activeSosId}/location`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+        }).then(r => r.json()).then(data => {
+          if (data.acknowledged) {
+            document.getElementById('sos-ack-badge').classList.remove('hidden');
+          }
+        });
+      });
+    }
+  }, 10000);
+}
 
-    data.buses.forEach(b => {
-      const isFull = b.is_full;
-      const capBadgeClass = isFull 
-        ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' 
-        : (b.available_seats <= 3 ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30');
-      const capLabel = isFull ? 'Full (50/50)' : `${b.available_seats} seats free`;
+function selectSosReason(reason, btn) {
+  document.querySelectorAll('.sos-reason-btn').forEach(b => {
+    b.classList.remove('border-[#E5384B]', 'bg-[#E5384B]/20', 'text-[#FFA586]');
+  });
+  btn.classList.add('border-[#E5384B]', 'bg-[#E5384B]/20', 'text-[#FFA586]');
 
-      html += `
-        <div class="glass-card rounded-xl p-4 border border-white/15 space-y-3 relative overflow-hidden group hover:border-amber-400/50 transition-all">
-          <div class="flex items-start justify-between gap-2">
-            <div>
+  if (activeSosId) {
+    fetch(`/api/sos/${activeSosId}/reason`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: reason })
+    });
+  }
+}
+
+function confirmCancelSos() {
+  if (confirm("Are you sure you want to cancel the emergency SOS alert?")) {
+    if (activeSosId) {
+      fetch(`/api/sos/${activeSosId}/cancel`, { method: 'POST' });
+    }
+    if (sosLocationInterval) clearInterval(sosLocationInterval);
+    document.getElementById('sos-sent-modal').classList.add('hidden');
+    cancelSosHold();
+  }
+}
+
+// Help Modals
+function openMissedBusModal() { document.getElementById('missed-bus-modal').classList.remove('hidden'); }
+function closeMissedBusModal() { document.getElementById('missed-bus-modal').classList.add('hidden'); }
+function openComplaintModal() { document.getElementById('complaint-modal').classList.remove('hidden'); }
+function closeComplaintModal() { document.getElementById('complaint-modal').classList.add('hidden'); }
+function openRequestsModal() { document.getElementById('requests-modal').classList.remove('hidden'); }
+function closeRequestsModal() { document.getElementById('requests-modal').classList.add('hidden'); }
+
+function logMissedBusTicket() {
+  fetch('/api/help-requests', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'bus_missed', reason: 'Missed Pickup', message: 'Student missed scheduled pickup. Requesting alternative bus assistance.' })
+  }).then(r => r.json()).then(() => {
+    alert("Missed bus alert transmitted to dispatch office.");
+    closeMissedBusModal();
+  });
+}
+
+function submitStudentComplaint(e) {
+  e.preventDefault();
+  const cat = document.getElementById('complaint-category').value;
+  const msg = document.getElementById('complaint-message').value;
+  fetch('/api/help-requests', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'complaint', reason: cat, message: msg })
+  }).then(r => r.json()).then(() => {
+    alert("Complaint logged. You can track progress in 'My requests'.");
+    closeComplaintModal();
+  });
+}
+
+function searchRoutesTo(query) {
+  if (!query || query.length < 2) return;
+  fetch(`/api/routes/search?to=${encodeURIComponent(query)}`)
+    .then(r => r.json())
+    .then(data => {
+      const container = document.getElementById('route-results-container');
+      const heading = document.getElementById('search-results-heading');
+      if (data.results && data.results.length > 0) {
+        heading.textContent = `BUSES TO ${data.destination.name.toUpperCase()} TODAY`;
+        container.innerHTML = data.results.map(b => `
+          <div class="card p-4 rounded-2xl space-y-3 hover:border-[#FFA586] transition-all">
+            <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <span class="px-2 py-0.5 rounded font-display font-bold text-xs text-white" style="background: ${b.route_color};">
+                <span class="px-2.5 py-1 rounded-lg text-xs font-extrabold text-white font-mono" style="background: ${b.route_color || '#B51A2B'};">
                   ${b.route_code}
                 </span>
-                <span class="text-sm sm:text-base font-extrabold text-white font-mono">
-                  ${b.bus_reg}
-                </span>
+                <span class="text-sm font-extrabold text-[#F4EFEC] font-display">${b.bus_reg}</span>
               </div>
-              <div class="text-xs text-slate-300 font-medium mt-1">
-                ${b.route_name}
-              </div>
-            </div>
-            <div class="text-right shrink-0">
-              <span class="text-xs font-bold px-2 py-0.5 rounded-md border ${capBadgeClass}">
-                ${capLabel}
+              <span class="chip ${b.seat_hint === 'Seats free' ? 'chip-emerald' : 'chip-amber'} text-[11px]">
+                ${b.seat_hint}
               </span>
-              <div class="text-[10px] text-slate-400 font-mono mt-0.5">${b.occupied}/${b.capacity} occupied</div>
             </div>
+            <div class="grid grid-cols-3 gap-2 text-xs pt-1 border-t border-[#384358] font-mono text-[#AEB5C6]">
+              <div>Departs: <strong class="text-[#F4EFEC]">4:30 PM</strong></div>
+              <div>Arrives: <strong class="text-[#F4EFEC]">${b.arrive_time}</strong></div>
+              <div>Gate: <strong class="text-[#FFA586]">${b.gate || 'Gate 2'}</strong></div>
+            </div>
+            <button type="button" onclick="requestBusPass('${b.bus_id}', '${b.bus_reg}')" class="w-full py-2 rounded-xl bg-[#FFA586]/15 hover:bg-[#FFA586]/25 border border-[#FFA586]/40 text-[#FFA586] text-xs font-bold transition-all">
+              Request 1-Day Pass for this Bus
+            </button>
           </div>
-
-          <div class="grid grid-cols-2 gap-2 text-xs bg-white/5 p-2.5 rounded-xl border border-white/5">
-            <div>
-              <div class="text-[10px] uppercase font-bold text-slate-400">Campus Departs</div>
-              <div class="text-xs font-bold text-amber-400 font-mono">${b.evening_depart_time}</div>
-            </div>
-            <div>
-              <div class="text-[10px] uppercase font-bold text-slate-400">Drop-off ETA</div>
-              <div class="text-xs font-bold text-emerald-400 font-mono">${b.evening_drop_time} (~${b.travel_mins}m)</div>
-            </div>
-          </div>
-
-          <div class="flex items-center justify-between gap-2 pt-1 border-t border-white/10 text-xs">
-            <div class="text-[11px] text-slate-400 truncate">
-              👨‍✈️ ${b.driver_name} (${b.driver_phone})
-            </div>
-            ${isFull ? `
-              <button type="button" disabled class="text-xs px-3 py-1.5 rounded-xl bg-rose-500/10 text-rose-400/60 border border-rose-500/20 font-bold cursor-not-allowed">
-                Bus Full (50/50)
-              </button>
-            ` : `
-              <button 
-                type="button" 
-                onclick="openChangeRequestModal(${b.bus_id}, '${b.bus_reg}', '${b.route_code}', ${b.dest_stop_id}, '${b.dest_stop_name}', '${b.evening_drop_time}')"
-                class="text-xs font-bold px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-md btn-press flex items-center gap-1"
-              >
-                <span>Request Bus</span>
-                <span>→</span>
-              </button>
-            `}
-          </div>
-        </div>
-      `;
+        `).join('');
+      }
     });
-    html += '</div>';
-    container.innerHTML = html;
-  } catch (err) {
-    if (loading) loading.classList.add('hidden');
-    console.error('Failed to load evening buses:', err);
+}
+
+function selectQuickStop(name) {
+  document.getElementById('route-dest-search').value = name;
+  searchRoutesTo(name);
+}
+
+function requestBusPass(busId, regNo) {
+  const reason = prompt(`Reason for 1-day travel reassignment on Bus ${regNo}:`, "Lab extended / Project work");
+  if (reason) {
+    fetch('/api/student/request-bus-change', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target_bus_id: busId, target_stop_id: {{ stu.stop_id or 1 }}, reason: reason })
+    }).then(r => r.json()).then(data => {
+      alert(data.message || "Request submitted to transport admin for approval.");
+    });
   }
 }
+
+// Student Status Polling (Every 3 seconds)
+let notified5min = false;
+let studentBusMarker = null;
+
+function pollStudentStatus() {
+  fetch('/api/student/status')
+    .then(r => r.json())
+    .then(data => {
+      if (!data.ok) return;
+
+      const hero = document.getElementById('student-hero');
+      const tagline = document.getElementById('hero-tagline');
+      const etaBlock = document.getElementById('hero-eta-block');
+
+      if (data.is_on_bus) {
+        hero.className = "relative rounded-[26px] p-6 text-white overflow-hidden shadow-2xl bg-gradient-to-br from-[#059669] to-[#064e3b]";
+        tagline.innerHTML = '<span class="w-2 h-2 rounded-full bg-[#34D399] inline-block animate-ping"></span> ON BOARD';
+        etaBlock.innerHTML = '<div class="text-3xl font-extrabold font-display">You\'re on the bus</div>';
+      } else if (data.is_here) {
+        hero.className = "relative rounded-[26px] p-6 text-white overflow-hidden shadow-2xl bg-gradient-to-br from-[#059669] to-[#064e3b]";
+        tagline.innerHTML = '<span class="w-2 h-2 rounded-full bg-[#34D399] inline-block animate-ping"></span> BUS IS HERE NOW';
+        etaBlock.innerHTML = '<div class="text-4xl font-extrabold font-display">Bus is here!</div>';
+      }
+
+      if (data.active_sos && !activeSosId) {
+        activeSosId = data.active_sos.id;
+        showSosSentScreen();
+        if (data.active_sos.acknowledged_at) {
+          document.getElementById('sos-ack-badge').classList.remove('hidden');
+        }
+      }
+
+      // Update live bus position for this student's respective bus ONLY
+      if (data.bus_lat && data.bus_lng && window.studentMap) {
+        const newPos = [data.bus_lat, data.bus_lng];
+        if (!studentBusMarker) {
+          const busIcon = L.divIcon({
+            html: `<div class="relative w-7 h-7 rounded-full bg-[#B51A2B] border-2 border-white shadow-lg flex items-center justify-center text-white"><span class="animate-ping absolute inset-0 rounded-full bg-[#B51A2B] opacity-40"></span><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="6" width="18" height="12" rx="3"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></div>`,
+            className: '',
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+          });
+          studentBusMarker = L.marker(newPos, { icon: busIcon }).addTo(window.studentMap).bindTooltip(`Your Bus ${data.bus_reg || ''}`);
+        } else {
+          studentBusMarker.setLatLng(newPos);
+        }
+      }
+    }).catch(() => {});
+}
+
+setInterval(pollStudentStatus, 3000);
+
+// Initialize Leaflet Map for Student (Only Respective Bus & Stops)
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof L !== 'undefined' && document.getElementById('student-mini-map')) {
+    const stopsData = {{ stops|tojson }};
+    const studentStopLat = {{ stu.stop_lat or 17.33 }};
+    const studentStopLng = {{ stu.stop_lng or 78.55 }};
+
+    const map = L.map('student-mini-map', { zoomControl: false, attributionControl: false }).setView([studentStopLat, studentStopLng], 13);
+    window.studentMap = map;
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+
+    const pts = [];
+    if (stopsData && stopsData.length) {
+      stopsData.forEach((s, idx) => {
+        pts.push([s.lat, s.lng]);
+        const isMyStop = (s.stop_id === {{ stu.stop_id or -1 }});
+        L.circleMarker([s.lat, s.lng], {
+          radius: isMyStop ? 7 : 4,
+          color: isMyStop ? '#FFA586' : '#7D869C',
+          fillColor: isMyStop ? '#FFA586' : '#161E2F',
+          fillOpacity: 1,
+          weight: 2
+        }).addTo(map).bindTooltip(s.name + (isMyStop ? ' (Your Stop)' : ''));
+      });
+
+      // Draw route line
+      L.polyline(pts, { color: '#FFA586', weight: 4, opacity: 0.85 }).addTo(map);
+      map.fitBounds(pts, { padding: [20, 20] });
+    }
+
+    // Initialize Bus Marker for Student's Respective Bus Only
+    {% if live and live.lat and live.lng %}
+    const busIcon = L.divIcon({
+      html: `<div class="relative w-7 h-7 rounded-full bg-[#B51A2B] border-2 border-white shadow-lg flex items-center justify-center text-white"><span class="animate-ping absolute inset-0 rounded-full bg-[#B51A2B] opacity-40"></span><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="6" width="18" height="12" rx="3"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></div>`,
+      className: '',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
+    });
+    studentBusMarker = L.marker([{{ live.lat }}, {{ live.lng }}], { icon: busIcon }).addTo(map).bindTooltip('Your Bus {{ stu.bus_reg }}');
+    {% endif %}
+  }
+});
 </script>
 {% endblock %}

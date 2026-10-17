@@ -3,32 +3,39 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#060913">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚌</text></svg>">
+  <meta name="theme-color" content="#161E2F">
+  <link rel="icon" href="/static/favicon.svg">
   <title>{% block title %}{{ app_name }}{% endblock %} • Campus Transit</title>
   
-  <!-- Tailwind CSS via CDN -->
+  <!-- Plus Jakarta Sans Fonts 400-800 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS via CDN (Preflight disabled) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
+      corePlugins: {
+        preflight: false,
+      },
       theme: {
         extend: {
           colors: {
             brand: {
-              400: '#fbbf24',
-              500: '#f59e0b',
-              600: '#d97706',
-            },
-            transit: {
-              card: 'rgba(15, 23, 42, 0.7)',
-              border: 'rgba(255, 255, 255, 0.08)',
-              navy: '#070b14',
+              peach: '#FFA586',
+              peachDark: '#FF8F6B',
+              crimson: '#B51A2B',
+              wine: '#541A2E',
+              navyDeep: '#161E2F',
+              navyCard: '#242F49',
+              navySlate: '#384358',
             }
           },
           fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-            display: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            display: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
           }
         }
       }
@@ -46,57 +53,59 @@
     body { padding-bottom: 24px; }
   </style>
 </head>
-<body class="bg-[#060913] text-slate-100 min-h-screen selection:bg-amber-500/30 selection:text-amber-300">
+<body class="bg-[#161E2F] text-[#F4EFEC] min-h-screen selection:bg-[#FFA586]/30 selection:text-[#FFA586]">
 
-  <!-- Ambient Light Accents for Night Transit Aesthetic -->
-  <div class="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-96 bg-gradient-to-b from-indigo-900/20 via-amber-500/5 to-transparent pointer-events-none blur-3xl -z-10"></div>
-  <div class="fixed top-36 -left-32 w-72 h-72 bg-blue-600/10 pointer-events-none rounded-full blur-3xl -z-10"></div>
-  <div class="fixed top-48 -right-32 w-72 h-72 bg-amber-500/10 pointer-events-none rounded-full blur-3xl -z-10"></div>
+  <!-- Ambient Light Accents: Crimson top-right, Peach top-left -->
+  <div class="fixed top-0 left-0 w-96 h-96 bg-[#FFA586]/10 pointer-events-none rounded-full blur-3xl -z-10"></div>
+  <div class="fixed top-0 right-0 w-96 h-96 bg-[#B51A2B]/20 pointer-events-none rounded-full blur-3xl -z-10"></div>
+  <div class="fixed top-48 left-1/2 -translate-x-1/2 w-full max-w-4xl h-80 bg-gradient-to-b from-[#541A2E]/15 to-transparent pointer-events-none blur-3xl -z-10"></div>
 
   <!-- Header -->
-  <header class="sticky top-0 z-30 backdrop-blur-xl bg-[#060913]/85 border-b border-white/10 transition-all">
+  <header class="sticky top-0 z-30 backdrop-blur-xl bg-[#161E2F]/90 border-b border-[#384358]/80 transition-all">
     <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
       <div class="flex items-center gap-3 min-w-0">
-        <a href="/" class="flex items-center gap-2 group shrink-0">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-lg shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform">
-            🚌
-          </div>
+        <a href="/" class="flex items-center gap-2.5 group shrink-0" aria-label="CollegeNav Home">
+          <img src="/static/logo.svg" alt="CollegeNav 2.0" class="w-8 h-8 shrink-0 drop-shadow">
           <div>
-            <div class="font-extrabold text-base tracking-tight font-display flex items-center gap-1">
-              <span class="text-white">College</span><span class="text-amber-400">Nav</span>
+            <div class="font-extrabold text-base tracking-tight font-display flex items-center gap-1.5">
+              <span class="text-[#F4EFEC]">College</span><span class="text-[#FFA586]">Nav</span>
+              <span class="brand-version text-[11px] font-extrabold px-1.5 py-0.5 rounded-md bg-[#FFA586]/20 text-[#FFA586] border border-[#FFA586]/30">2.0</span>
             </div>
           </div>
         </a>
-        <div class="h-4 w-px bg-white/10 shrink-0"></div>
-        <span class="text-xs text-slate-400 font-medium truncate shrink-1">{{ college }}</span>
+        <div class="h-4 w-px bg-white/10 shrink-0 college-sub"></div>
+        <span class="college-sub text-xs text-[#AEB5C6] font-medium truncate shrink-1">{{ college }}</span>
       </div>
 
       <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
         <nav class="hidden sm:flex items-center gap-1 mr-1">
-          <a href="{{ url_for('routes_list') }}" class="text-xs font-semibold px-2.5 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors">Routes</a>
-          <a href="{{ url_for('live_map') }}" class="text-xs font-semibold px-2.5 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors">Live Map</a>
-          <a href="{{ url_for('alerts_page') }}" class="text-xs font-semibold px-2.5 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors">Notices</a>
+          <a href="{{ url_for('routes_list') }}" class="text-xs font-semibold px-2.5 py-1.5 rounded-xl text-[#AEB5C6] hover:text-[#F4EFEC] hover:bg-white/5 transition-colors">Routes</a>
+          <a href="{{ url_for('live_map') }}" class="text-xs font-semibold px-2.5 py-1.5 rounded-xl text-[#AEB5C6] hover:text-[#F4EFEC] hover:bg-white/5 transition-colors">Live Map</a>
+          <a href="{{ url_for('alerts_page') }}" class="text-xs font-semibold px-2.5 py-1.5 rounded-xl text-[#AEB5C6] hover:text-[#F4EFEC] hover:bg-white/5 transition-colors">Notices</a>
         </nav>
-        <button id="bell" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-amber-400 hover:bg-white/5 border border-transparent hover:border-white/10 transition-all text-sm btn-press" title="Turn on alert notifications" aria-label="Turn on alert notifications">
-          🔔
+        <button id="bell" class="w-9 h-9 rounded-xl flex items-center justify-center text-[#AEB5C6] hover:text-[#FFA586] hover:bg-white/5 border border-transparent hover:border-white/10 transition-all text-sm btn-press" title="Turn on alert notifications" aria-label="Turn on alert notifications">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         </button>
         {% if user_role == 'student' %}
-          <a href="{{ url_for('student_home') }}" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-400 text-slate-950 hover:bg-amber-300 transition-colors shadow-sm flex items-center gap-1">
-            <span>🎓</span> <span class="hidden sm:inline">My Bus</span>
+          <a href="{{ url_for('student_home') }}" class="role-chip text-xs font-bold px-3 py-1.5 rounded-xl bg-[#FFA586] text-[#161E2F] hover:bg-[#FF8F6B] transition-colors shadow-sm flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 3 3 6 3s6-1 6-3v-5"/></svg>
+            <span class="full-title hidden sm:inline">My Bus</span>
           </a>
-          <a href="{{ url_for('logout') }}" class="text-xs text-slate-400 hover:text-white px-1.5 py-1">Exit</a>
+          <a href="{{ url_for('logout') }}" class="text-xs text-[#AEB5C6] hover:text-[#F4EFEC] px-1.5 py-1">Exit</a>
         {% elif user_role == 'driver' %}
-          <a href="{{ url_for('driver_home') }}" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-400 text-slate-950 hover:bg-emerald-300 transition-colors shadow-sm flex items-center gap-1">
-            <span>🚌</span> <span class="hidden sm:inline">Duty</span>
+          <a href="{{ url_for('driver_home') }}" class="role-chip text-xs font-bold px-3 py-1.5 rounded-xl bg-emerald-400 text-slate-950 hover:bg-emerald-300 transition-colors shadow-sm flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="6" width="18" height="12" rx="3"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+            <span class="full-title hidden sm:inline">Duty</span>
           </a>
-          <a href="{{ url_for('logout') }}" class="text-xs text-slate-400 hover:text-white px-1.5 py-1">Exit</a>
+          <a href="{{ url_for('logout') }}" class="text-xs text-[#AEB5C6] hover:text-[#F4EFEC] px-1.5 py-1">Exit</a>
         {% elif is_admin %}
-          <a href="{{ url_for('admin_home') }}" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-purple-400 text-slate-950 hover:bg-purple-300 transition-colors shadow-sm flex items-center gap-1">
-            <span>🛡️</span> <span class="hidden sm:inline">Admin</span>
+          <a href="{{ url_for('admin_home') }}" class="role-chip text-xs font-bold px-3 py-1.5 rounded-xl bg-[#FFA586] text-[#161E2F] hover:bg-[#FF8F6B] transition-colors shadow-sm flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span class="full-title hidden sm:inline">Control Room</span>
           </a>
-          <a href="{{ url_for('logout') }}" class="text-xs text-slate-400 hover:text-white px-1.5 py-1">Exit</a>
+          <a href="{{ url_for('logout') }}" class="text-xs text-[#AEB5C6] hover:text-[#F4EFEC] px-1.5 py-1">Exit</a>
         {% else %}
-          <a href="{{ url_for('unified_login') }}" class="text-xs font-bold px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 transition-all shadow-sm">
+          <a href="{{ url_for('unified_login') }}" class="role-chip text-xs font-bold px-3.5 py-1.5 rounded-xl bg-[#FFA586] hover:bg-[#FF8F6B] text-[#161E2F] transition-all shadow-sm">
             Sign In
           </a>
         {% endif %}
@@ -105,7 +114,7 @@
   </header>
 
   <!-- Main Content Viewport -->
-  <main class="max-w-3xl mx-auto px-4 py-5">
+  <main class="{% if request.path.startswith('/admin') %}max-w-[1320px]{% else %}max-w-3xl{% endif %} mx-auto px-3 sm:px-6 py-5">
     {% with msgs = get_flashed_messages(with_categories=true) %}
       {% for cat, m in msgs %}
         <div class="mb-4 px-4 py-3 rounded-xl border text-sm flex items-center gap-2.5 backdrop-blur-md {% if cat=='ok' %}bg-emerald-950/50 border-emerald-500/30 text-emerald-200{% else %}bg-amber-950/50 border-amber-500/30 text-amber-200{% endif %} shadow-lg">
@@ -116,15 +125,6 @@
     {% endwith %}
 
     {% block content %}{% endblock %}
-
-    {% if demo %}
-      <div class="text-center mt-12 mb-4">
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-900/60 border border-white/5 text-slate-400 backdrop-blur-sm">
-          <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-          Simulated demo environment • 10 Fleet buses • Max 50 seats/bus
-        </span>
-      </div>
-    {% endif %}
   </main>
 
   <!-- Interactive Toast Notification Center -->

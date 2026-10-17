@@ -1,21 +1,107 @@
-<div class="flex gap-2 text-xs font-semibold mb-5 overflow-x-auto pb-1">
-  {% for href, label, icon in [
-    (url_for('admin_home'), 'Overview', '📊'),
-    (url_for('admin_allocations'), 'Allocations', '👥'),
-    (url_for('admin_routes'), 'Routes', '🛣️'),
-    (url_for('admin_stops'), 'Stops', '🚏'),
-    (url_for('admin_buses'), 'Buses', '🚌'),
-    (url_for('admin_alerts'), 'Notices', '📢')
-  ] %}
-  <a href="{{ href }}" class="px-3.5 py-1.5 rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 {% if request.path == href or (href != url_for('admin_home') and request.path.startswith(href)) %}bg-amber-400 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}bg-slate-900/60 hover:bg-slate-800 text-slate-300 border border-white/10{% endif %}">
-    <span>{{ icon }}</span>
-    <span>{{ label }}</span>
-    {% if label == 'Allocations' and pending_bus_requests_count and pending_bus_requests_count > 0 %}
-    <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white animate-pulse">{{ pending_bus_requests_count }}</span>
-    {% endif %}
-  </a>
-  {% endfor %}
-  <a href="{{ url_for('logout') }}" class="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10 ml-auto whitespace-nowrap transition-colors">
-    Sign out
-  </a>
-</div>
+<!-- Desktop Sidebar (236px) & Mobile Horizontal Scrolling Pill Menu -->
+<aside class="w-full lg:w-[236px] shrink-0 space-y-4">
+  
+  <!-- Sidebar Card -->
+  <div class="card p-3 lg:p-4 rounded-2xl bg-[#1B2539] border border-[#384358] shadow-xl">
+    
+    <!-- Sidebar Header (Desktop) -->
+    <div class="hidden lg:flex items-center gap-3 pb-4 mb-3 border-b border-[#384358]">
+      <img src="/static/logo.svg" alt="CollegeNav 2.0" class="w-9 h-9 drop-shadow">
+      <div>
+        <div class="text-sm font-extrabold font-display text-[#F4EFEC]">
+          College<span class="text-[#FFA586]">Nav</span> <span class="text-[10px] text-[#AEB5C6]">2.0</span>
+        </div>
+        <div class="text-[11px] font-bold text-[#FFA586] uppercase tracking-wider">
+          Transport Office
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation List (Flex col on desktop, horizontal scroll on mobile) -->
+    <nav class="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0" aria-label="Admin Navigation">
+      
+      <!-- 1. Overview -->
+      <a href="{{ url_for('admin_home') }}"
+         class="px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between whitespace-nowrap {% if request.path == url_for('admin_home') %}bg-[#FFA586] text-[#161E2F] shadow-md shadow-[#FFA586]/20{% else %}text-[#AEB5C6] hover:text-[#F4EFEC] hover:bg-[#242F49]{% endif %}">
+        <div class="flex items-center gap-2.5">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <span>Overview</span>
+        </div>
+      </a>
+
+      <!-- 2. Live Fleet Map -->
+      <a href="{{ url_for('live_map') }}"
+         class="px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between whitespace-nowrap {% if request.path == url_for('live_map') %}bg-[#FFA586] text-[#161E2F] shadow-md shadow-[#FFA586]/20{% else %}text-[#AEB5C6] hover:text-[#F4EFEC] hover:bg-[#242F49]{% endif %}">
+        <div class="flex items-center gap-2.5">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+          <span>Live Fleet</span>
+        </div>
+      </a>
+
+      <!-- 3. Help Desk (with red count badge) -->
+      <a href="{{ url_for('admin_helpdesk') }}"
+         class="px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between whitespace-nowrap {% if request.path == url_for('admin_helpdesk') %}bg-[#FFA586] text-[#161E2F] shadow-md shadow-[#FFA586]/20{% else %}text-[#AEB5C6] hover:text-[#F4EFEC] hover:bg-[#242F49]{% endif %}">
+        <div class="flex items-center gap-2.5">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <span>Help Desk</span>
+        </div>
+        {% if open_help_requests_count and open_help_requests_count > 0 %}
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#E5384B] text-white animate-pulse">
+          {{ open_help_requests_count }}
+        </span>
+        {% endif %}
+      </a>
+
+      <!-- 4. Allocations -->
+      <a href="{{ url_for('admin_allocations') }}"
+         class="px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between whitespace-nowrap {% if request.path == url_for('admin_allocations') %}bg-[#FFA586] text-[#161E2F] shadow-md shadow-[#FFA586]/20{% else %}text-[#AEB5C6] hover:text-[#F4EFEC] hover:bg-[#242F49]{% endif %}">
+        <div class="flex items-center gap-2.5">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Allocations</span>
+        </div>
+        {% if pending_bus_requests_count and pending_bus_requests_count > 0 %}
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#FBBF24] text-[#161E2F] font-bold">
+          {{ pending_bus_requests_count }}
+        </span>
+        {% endif %}
+      </a>
+
+      <!-- 5. Routes and Stops -->
+      <a href="{{ url_for('admin_routes') }}"
+         class="px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between whitespace-nowrap {% if request.path.startswith('/admin/routes') or request.path.startswith('/admin/stops') %}bg-[#FFA586] text-[#161E2F] shadow-md shadow-[#FFA586]/20{% else %}text-[#AEB5C6] hover:text-[#F4EFEC] hover:bg-[#242F49]{% endif %}">
+        <div class="flex items-center gap-2.5">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a4.5 4.5 0 0 0 0-9H5"/><circle cx="18" cy="5" r="3"/></svg>
+          <span>Routes &amp; Stops</span>
+        </div>
+      </a>
+
+      <!-- 6. Buses and Drivers -->
+      <a href="{{ url_for('admin_buses') }}"
+         class="px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between whitespace-nowrap {% if request.path == url_for('admin_buses') %}bg-[#FFA586] text-[#161E2F] shadow-md shadow-[#FFA586]/20{% else %}text-[#AEB5C6] hover:text-[#F4EFEC] hover:bg-[#242F49]{% endif %}">
+        <div class="flex items-center gap-2.5">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="6" width="18" height="12" rx="3"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+          <span>Buses &amp; Drivers</span>
+        </div>
+      </a>
+
+      <!-- 7. Notices -->
+      <a href="{{ url_for('admin_alerts') }}"
+         class="px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between whitespace-nowrap {% if request.path == url_for('admin_alerts') %}bg-[#FFA586] text-[#161E2F] shadow-md shadow-[#FFA586]/20{% else %}text-[#AEB5C6] hover:text-[#F4EFEC] hover:bg-[#242F49]{% endif %}">
+        <div class="flex items-center gap-2.5">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span>Notices</span>
+        </div>
+      </a>
+
+      <!-- Exit / Sign Out -->
+      <div class="pt-2 mt-2 border-t border-[#384358] hidden lg:block">
+        <a href="{{ url_for('logout') }}"
+           class="px-3.5 py-2 rounded-xl text-xs font-semibold text-[#FF8A8A] hover:bg-[#E5384B]/10 transition-colors flex items-center gap-2">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span>Sign Out</span>
+        </a>
+      </div>
+
+    </nav>
+  </div>
+</aside>

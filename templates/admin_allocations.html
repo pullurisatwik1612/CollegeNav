@@ -3,9 +3,12 @@
 {% block title %}Fleet & Student Allocations • Admin • {{ app_name }}{% endblock %}
 
 {% block content %}
-{% include "_admin_nav.html" %}
+<div class="flex flex-col lg:flex-row gap-6 items-start">
+  <!-- Left Sidebar -->
+  {% include "_admin_nav.html" %}
 
-<div class="space-y-6">
+  <!-- Main Content Area -->
+  <div class="flex-1 w-full space-y-6">
 
   <!-- Page Header -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-white/10">
@@ -20,7 +23,7 @@
 
     <!-- Quick Stats Metric -->
     <div class="flex items-center gap-2">
-      <span class="text-xs font-bold px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-300">
+      <span class="text-xs font-bold px-3 py-1.5 rounded-xl border border-white/10 text-slate-300" style="background: rgba(22,30,47,.45);">
         Total Students: <b class="text-white">{{ total_students }}</b>
       </span>
       {% if unallocated_count > 0 %}
@@ -93,7 +96,7 @@
             {{ pending_bus_requests_count }} Awaiting Decision
           </span>
           {% else %}
-          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/10 text-slate-400">
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold text-slate-400" style="background: rgba(22,30,47,.45);">
             All Resolved
           </span>
           {% endif %}
@@ -115,7 +118,7 @@
             <span class="text-sm font-extrabold text-white font-display">
               {{ req.student_name }}
             </span>
-            <span class="text-xs font-mono text-slate-300 bg-white/10 px-2 py-0.5 rounded font-bold">
+            <span class="text-xs font-mono text-slate-300 px-2 py-0.5 rounded font-bold" style="background: rgba(22,30,47,.45);">
               {{ req.student_roll }}
             </span>
             <span class="text-xs text-slate-400">
@@ -235,7 +238,7 @@
       </button>
 
       {% if search_q or bus_filter %}
-      <a href="/admin/allocations" class="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs flex items-center justify-center border border-white/10">
+      <a href="/admin/allocations" class="px-3 py-2 rounded-xl text-slate-400 hover:text-white text-xs flex items-center justify-center border border-white/10" style="background: rgba(22,30,47,.45);">
         Clear
       </a>
       {% endif %}
@@ -423,7 +426,7 @@
       </div>
 
       <div class="pt-2 flex justify-end gap-2">
-        <button type="button" onclick="closeReassignModal()" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold">
+        <button type="button" onclick="closeReassignModal()" class="px-4 py-2 rounded-xl text-slate-300 text-xs font-semibold" style="background: rgba(22,30,47,.45);">
           Cancel
         </button>
         <button type="submit" class="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold btn-press">
@@ -431,6 +434,8 @@
         </button>
       </div>
     </form>
+  </div>
+</div>
   </div>
 </div>
 {% endblock %}

@@ -1,4 +1,5 @@
-collegenav.db
+collegenav*.db*
 __pycache__/
 .env
 venv/
+.agent/

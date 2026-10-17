@@ -1,18 +1,48 @@
 {% extends "base.html" %}
 {% from "_macros.html" import fresh_badge %}
+
+{% block title %}All Campus Routes • CollegeNav 2.0{% endblock %}
+
 {% block content %}
-<h1 class="text-xl font-bold mb-3">All routes</h1>
-<div class="space-y-3">
-{% for x in rows %}
-  <a href="{{ url_for('route_detail', route_id=x.r['id']) }}" class="block bg-white rounded-xl shadow overflow-hidden {% if x.r['status']!='active' %}opacity-70{% endif %}">
-    <div class="h-1.5" style="background:{{ x.r['color'] }}"></div>
-    <div class="p-4">
-      <div class="flex justify-between items-center"><div><b>{{ x.r['code'] }}</b> <span class="text-slate-600">{{ x.r['name'] }}</span></div>
-        {% if x.r['status']!='active' %}<span class="text-xs bg-red-100 text-red-800 rounded-full px-2 py-0.5">Suspended</span>{% endif %}</div>
-      <div class="text-sm text-slate-500 mt-1">{{ x.first }} → {{ x.last }} · {{ x.n }} stops · {{ x.dur }} min</div>
-      <div class="text-sm text-slate-500">{{ x.trips }} trips, first {{ x.first_bus }}, last {{ x.last_bus }}</div>
-      <div class="mt-2">{{ fresh_badge(x.fresh) }}</div>
-    </div></a>
-{% else %}<p class="text-slate-500">No routes yet.</p>{% endfor %}
+<div class="max-w-3xl mx-auto space-y-4 font-sans text-[#F4EFEC]">
+  <div class="pb-2 border-b border-[#384358]">
+    <h1 class="text-2xl font-extrabold font-display text-[#F4EFEC]">All Campus Transit Routes</h1>
+    <p class="text-xs text-[#AEB5C6] mt-0.5">CVR College of Engineering 10 fleet routes and timetable</p>
+  </div>
+
+  <div class="space-y-3">
+  {% for x in rows %}
+    <a href="{{ url_for('route_detail', route_id=x.r['id']) }}" class="card p-4 rounded-2xl block hover:border-[#FFA586] transition-all space-y-2.5 {% if x.r['status']!='active' %}opacity-70{% endif %}">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-2.5">
+          <span class="px-2.5 py-1 rounded-xl text-xs font-mono font-bold text-white shadow-sm" style="background: {{ x.r['color'] or '#B51A2B' }};">
+            {{ x.r['code'] }}
+          </span>
+          <span class="text-sm font-extrabold text-[#F4EFEC] font-display">{{ x.r['name'] }}</span>
+        </div>
+        {% if x.r['status']!='active' %}
+        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#E5384B]/20 text-[#FF8A8A] border border-[#E5384B]/30 uppercase">
+          Suspended
+        </span>
+        {% endif %}
+      </div>
+
+      <div class="text-xs text-[#AEB5C6] flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span>📍 {{ x.first }} → {{ x.last }}</span>
+        <span>•</span>
+        <span>{{ x.n }} stops</span>
+        <span>•</span>
+        <span>~{{ x.dur }} min duration</span>
+      </div>
+
+      <div class="flex items-center justify-between pt-1 border-t border-[#384358] text-[11px] text-[#7D869C]">
+        <div>{{ x.trips }} trips daily • First: {{ x.first_bus }} • Last: {{ x.last_bus }}</div>
+        <div>{{ fresh_badge(x.fresh) }}</div>
+      </div>
+    </a>
+  {% else %}
+    <div class="card p-8 text-center text-xs text-[#AEB5C6]">No routes registered yet.</div>
+  {% endfor %}
+  </div>
 </div>
 {% endblock %}

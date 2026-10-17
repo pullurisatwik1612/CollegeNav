@@ -1,64 +1,199 @@
 {% extends "base.html" %}
 {% from "_macros.html" import fresh_badge, alert_box %}
+
+{% block title %}Route {{ r['code'] }} • {{ r['name'] }} • CollegeNav 2.0{% endblock %}
+
 {% block content %}
-<a href="{{ url_for('routes_list') }}" class="text-sm text-amber-700">← All routes</a>
-<div class="mt-2 flex items-start justify-between gap-2">
-  <div><h1 class="text-xl font-bold"><span class="dot" style="background:{{ r['color'] }}"></span> {{ r['code'] }} <span class="font-normal text-slate-600">{{ r['name'] }}</span></h1>
-    {% if r['notes'] %}<p class="text-sm text-slate-500">{{ r['notes'] }}</p>{% endif %}</div>
-  <button id="follow" class="text-sm border rounded-lg px-3 py-1.5 bg-white whitespace-nowrap">☆ Follow</button>
+<div class="max-w-3xl mx-auto space-y-4 font-sans text-[#F4EFEC]">
+  
+  <!-- Back Link -->
+  <div>
+    <a href="{{ url_for('routes_list') }}" class="text-xs font-bold text-[#FFA586] hover:underline inline-flex items-center gap-1">
+      <span>← All Routes</span>
+    </a>
+  </div>
+
+  <!-- Route Header Card -->
+  <div class="card p-5 rounded-[24px] space-y-3">
+    <div class="flex items-start justify-between gap-3">
+      <div class="space-y-1">
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-1 rounded-xl text-xs font-mono font-bold text-white shadow-sm" style="background: {{ r['color'] or '#B51A2B' }};">
+            {{ r['code'] }}
+          </span>
+          <h1 class="text-xl sm:text-2xl font-extrabold font-display text-[#F4EFEC]">{{ r['name'] }}</h1>
+        </div>
+        {% if r['notes'] %}
+        <p class="text-xs text-[#AEB5C6]">{{ r['notes'] }}</p>
+        {% endif %}
+      </div>
+      <button id="follow" class="btn btn-secondary text-xs px-3.5 py-1.5 shrink-0">☆ Follow</button>
+    </div>
+
+    <div class="flex items-center gap-2 flex-wrap pt-1 border-t border-[#384358] text-xs">
+      <div>{{ fresh_badge(fresh) }}</div>
+      {% if r['status']!='active' %}
+      <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-[#E5384B]/20 text-[#FF8A8A] border border-[#E5384B]/30 uppercase">
+        Suspended
+      </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Route Alerts (if any) -->
+  {% if alerts %}
+  <div class="space-y-2">
+    {% for a in alerts %}{{ alert_box(a) }}{% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Route Map & Live Beacon -->
+  <div class="card p-3 rounded-[24px] space-y-2 shadow-xl">
+    <div class="flex items-center justify-between px-1">
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#161E2F] border border-[#384358] text-[11px] font-bold text-[#34D399]">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#34D399] animate-pulse"></span>
+          <span>Live GPS Telemetry</span>
+        </span>
+      </div>
+      <div id="livebox" class="text-xs font-mono text-[#AEB5C6]">Checking GPS...</div>
+    </div>
+    <div id="map" class="h-64 rounded-[20px] overflow-hidden border border-[#384358] bg-[#161E2F]"></div>
+  </div>
+
+  <!-- Stops Progression -->
+  <div class="card p-5 rounded-[24px] space-y-3">
+    <h2 class="text-xs font-extrabold uppercase tracking-wider text-[#AEB5C6]">
+      Stops in Sequence ({{ stops|length }} stops)
+    </h2>
+    <div class="space-y-2">
+    {% for s in stops %}
+      <div class="p-3 rounded-xl bg-[#161E2F] border border-[#384358] flex items-center justify-between gap-3 {% if s.name==highlight %}border-[#FFA586] bg-[#FFA586]/10{% endif %}" data-stop="{{ s.stop_id }}">
+        <div class="flex items-center gap-3">
+          <span class="w-6 h-6 rounded-lg bg-[#242F49] text-[#FFA586] text-xs font-mono font-bold flex items-center justify-center border border-[#384358]">
+            {{ loop.index }}
+          </span>
+          <div>
+            <div class="text-xs font-bold text-[#F4EFEC]">{{ s.name }}</div>
+            <div class="text-[11px] text-[#AEB5C6] font-mono">+{{ s.offset_min }} min after start</div>
+          </div>
+        </div>
+        <div class="text-xs font-bold text-right eta font-mono text-[#34D399]" data-stop="{{ s.stop_id }}"></div>
+      </div>
+    {% else %}
+      <p class="text-xs text-[#AEB5C6]">No stops configured for this route.</p>
+    {% endfor %}
+    </div>
+  </div>
+
+  <!-- Departure Times -->
+  <div class="card p-5 rounded-[24px] space-y-3">
+    <h2 class="text-xs font-extrabold uppercase tracking-wider text-[#AEB5C6]">
+      Scheduled Departures <span class="normal-case text-[11px] font-normal text-[#7D869C]">(at {{ stops[0].name if stops else 'first stop' }})</span>
+    </h2>
+    <div class="flex flex-wrap gap-2">
+      {% for t in times %}
+      <span class="px-3 py-1 rounded-xl bg-[#161E2F] border border-[#384358] text-xs font-mono font-bold text-[#FFA586]">
+        {{ t.t }}
+      </span>
+      {% else %}
+      <span class="text-xs text-[#AEB5C6]">Regular daily morning dispatch at 7:30 AM &amp; evening at 4:30 PM</span>
+      {% endfor %}
+    </div>
+    <p class="text-[11px] text-[#7D869C]">
+      Operating Days: {% for d in days %}{{ day_names[d] }}{% if not loop.last %}, {% endif %}{% else %}Mon - Sat{% endfor %}
+    </p>
+  </div>
+
 </div>
-<div class="mt-2 flex gap-2 flex-wrap items-center">{{ fresh_badge(fresh) }}
-  {% if r['status']!='active' %}<span class="text-xs bg-red-100 text-red-800 rounded-full px-2 py-0.5">⛔ Suspended</span>{% endif %}</div>
-<div class="mt-3 space-y-2">{% for a in alerts %}{{ alert_box(a) }}{% endfor %}</div>
-
-<div id="map" class="mt-3 h-64 rounded-xl overflow-hidden border bg-slate-200"></div>
-<div id="livebox" class="mt-2 text-sm bg-white rounded-lg px-3 py-2 border">Checking live location...</div>
-
-<h2 class="mt-5 mb-2 font-semibold">Stops</h2>
-<ol class="bg-white rounded-xl shadow divide-y">
-{% for s in stops %}
-  <li class="px-4 py-3 flex items-center gap-3 {% if s.name==highlight %}bg-amber-50{% endif %}" data-stop="{{ s.stop_id }}">
-    <span class="dot" style="background:{{ r['color'] }}"></span>
-    <div class="flex-1"><div class="font-medium">{{ s.name }}</div><div class="text-xs text-slate-500">+{{ s.offset_min }} min after first stop</div></div>
-    <div class="text-sm text-right eta" data-stop="{{ s.stop_id }}"></div>
-  </li>
-{% else %}<li class="px-4 py-3 text-slate-500">No stops added yet.</li>{% endfor %}
-</ol>
-
-<h2 class="mt-5 mb-2 font-semibold">Departure times <span class="text-xs font-normal text-slate-500">(at {{ stops[0].name if stops else 'first stop' }})</span></h2>
-<div class="flex flex-wrap gap-2">{% for t in times %}<span class="bg-white border rounded-lg px-3 py-1 text-sm">{{ t.t }}</span>{% else %}<span class="text-slate-500 text-sm">No schedule published.</span>{% endfor %}</div>
-<p class="text-xs text-slate-500 mt-2">Runs: {% for d in days %}{{ day_names[d] }}{% if not loop.last %}, {% endif %}{% else %}not specified{% endfor %}</p>
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
 const RID = {{ r['id'] }}, COLOR = {{ r['color']|tojson }}, STOPS = {{ stops|tojson }};
-const map = L.map('map'); 
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '&copy; OpenStreetMap'}).addTo(map);
+const map = L.map('map', { zoomControl: false }).setView([17.33, 78.6], 11);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+
 if (STOPS.length) {
   const pts = STOPS.map(s => [s.lat, s.lng]);
-  L.polyline(pts, {color: COLOR, weight: 5, opacity: .85}).addTo(map);
-  STOPS.forEach((s, i) => L.circleMarker([s.lat, s.lng], {radius: 7, color: '#fff', weight: 2, fillColor: COLOR, fillOpacity: 1}).addTo(map).bindTooltip(s.name, {permanent: i === 0 || i === STOPS.length - 1}));
-  map.fitBounds(pts, {padding: [30, 30]});
-} else { map.setView([17.38, 78.48], 10); }
+  L.polyline(pts, { color: '#FFA586', weight: 6, opacity: 0.15 }).addTo(map);
+  L.polyline(pts, { color: COLOR || '#FFA586', weight: 4, opacity: 0.9 }).addTo(map);
+
+  STOPS.forEach((s, i) => {
+    const isTerminus = (i === STOPS.length - 1);
+    L.circleMarker([s.lat, s.lng], {
+      radius: isTerminus ? 7 : 5,
+      color: '#FFA586',
+      weight: 2,
+      fillColor: '#161E2F',
+      fillOpacity: 1
+    }).addTo(map).bindTooltip(s.name, { permanent: i === 0 || isTerminus });
+  });
+
+  map.fitBounds(pts, { padding: [25, 25] });
+}
+
 let busMarker = null;
-async function refresh(){
+
+async function refreshRouteLive() {
   try {
     const d = await (await fetch('/api/live/' + RID)).json();
     document.querySelectorAll('.eta').forEach(e => e.textContent = '');
-    if (!d.available) { $('livebox').innerHTML = '○ ' + d.message; if (busMarker) { map.removeLayer(busMarker); busMarker = null; } return; }
+
+    if (!d.available) {
+      document.getElementById('livebox').textContent = d.message || 'Waiting for live GPS';
+      if (busMarker) {
+        map.removeLayer(busMarker);
+        busMarker = null;
+      }
+      return;
+    }
+
     const ll = [d.lat, d.lng];
-    if (!busMarker) busMarker = L.marker(ll, {icon: L.divIcon({html: '🚌', className: 'bus-icon', iconSize: [30, 30]})}).addTo(map); else busMarker.setLatLng(ll);
-    $('livebox').innerHTML = `<span class="text-emerald-700">●</span> <b>${d.label}</b>: bus ${d.bus}` + (d.source === 'sim' ? ' <span class="text-xs text-slate-500">(demo simulation, not a real GPS feed)</span>' : '');
-    d.etas.forEach(e => { const el = document.querySelector(`.eta[data-stop="${e.stop_id}"]`); if (el) el.innerHTML = e.eta_min === null ? '<span class="text-slate-400">passed ✓</span>' : `<b class="text-emerald-700">${e.eta_min === 0 ? 'now' : e.eta_min + ' min'}</b>`; });
-  } catch (e) {}
+    if (!busMarker) {
+      const busIcon = L.divIcon({
+        html: `<div class="relative w-8 h-8 rounded-full bg-[#B51A2B] border-2 border-white shadow-xl flex items-center justify-center text-white"><span class="animate-ping absolute inset-0 rounded-full bg-[#B51A2B] opacity-50"></span><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="6" width="18" height="12" rx="3"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></div>`,
+        className: '',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      });
+      busMarker = L.marker(ll, { icon: busIcon }).addTo(map);
+    } else {
+      busMarker.setLatLng(ll);
+    }
+
+    document.getElementById('livebox').innerHTML = `<span class="text-[#34D399]">●</span> <strong>${d.bus}</strong> • ${d.label}`;
+
+    if (d.etas) {
+      d.etas.forEach(e => {
+        const el = document.querySelector(`.eta[data-stop="${e.stop_id}"]`);
+        if (el) {
+          el.innerHTML = e.eta_min === null ? '<span class="text-[#7D869C]">passed</span>' : (e.eta_min === 0 ? 'arrived' : e.eta_min + 'm');
+        }
+      });
+    }
+  } catch (err) {}
 }
-refresh(); setInterval(refresh, 6000);
-const fb = $('follow');
-function subs(){ try { return JSON.parse(localStorage.getItem('subs') || '[]'); } catch (e) { return []; } }
-function paint(){ const on = subs().includes(RID); fb.textContent = on ? '★ Following' : '☆ Follow'; fb.className = 'text-sm border rounded-lg px-3 py-1.5 whitespace-nowrap ' + (on ? 'bg-amber-100 border-amber-400' : 'bg-white'); }
-fb.onclick = () => { let s = subs(); s = s.includes(RID) ? s.filter(x => x !== RID) : s.concat(RID); try { localStorage.setItem('subs', JSON.stringify(s)); } catch (e) {} paint(); toast(subs().includes(RID) ? 'You will get alerts for this route.' : 'Stopped following this route.'); };
+
+refreshRouteLive();
+setInterval(refreshRouteLive, 4000);
+
+const fb = document.getElementById('follow');
+function subs() {
+  try { return JSON.parse(localStorage.getItem('subs') || '[]'); } catch (e) { return []; }
+}
+function paint() {
+  const on = subs().includes(RID);
+  fb.textContent = on ? '★ Following' : '☆ Follow';
+  fb.className = on ? 'btn btn-primary text-xs px-3.5 py-1.5' : 'btn btn-secondary text-xs px-3.5 py-1.5';
+}
+fb.onclick = () => {
+  let s = subs();
+  s = s.includes(RID) ? s.filter(x => x !== RID) : s.concat(RID);
+  try { localStorage.setItem('subs', JSON.stringify(s)); } catch (e) {}
+  paint();
+};
 paint();
 </script>
 {% endblock %}

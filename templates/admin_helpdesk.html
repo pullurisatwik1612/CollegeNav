@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Transport Help Desk • CollegeNav 2.0{% endblock %}
+
+{% block content %}
+<div class="flex flex-col lg:flex-row gap-6 items-start">
+  
+  <!-- Left Sidebar -->
+  {% include "_admin_nav.html" %}
+
+  <!-- Main Help Desk Area -->
+  <div class="flex-1 w-full space-y-6">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#384358]">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-[#F4EFEC]">
+          Transport Help Desk
+        </h1>
+        <p class="text-xs text-[#AEB5C6] font-medium mt-0.5">
+          Emergency tickets, bus-missed reports, driver breakdowns, and passenger complaints
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="px-3 py-1 rounded-xl bg-[#E5384B]/20 border border-[#E5384B]/40 text-[#FF8A8A] text-xs font-bold font-mono">
+          {{ counts.open }} Open
+        </span>
+        <span class="px-3 py-1 rounded-xl bg-[#34D399]/20 border border-[#34D399]/40 text-[#34D399] text-xs font-bold font-mono">
+          {{ counts.resolved }} Resolved
+        </span>
+      </div>
+    </div>
+
+    <!-- Filter Tabs (Type & Status) -->
+    <div class="card p-3 rounded-2xl space-y-3">
+      <!-- Type Filter -->
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs font-bold">
+        <a href="{{ url_for('admin_helpdesk', status=current_status) }}"
+           class="px-3 py-1.5 rounded-xl transition-all whitespace-nowrap {% if not current_type %}bg-[#FFA586] text-[#161E2F]{% else %}bg-[#161E2F] text-[#AEB5C6] hover:text-white{% endif %}">
+          All Types ({{ counts.all }})
+        </a>
+        <a href="{{ url_for('admin_helpdesk', type='sos', status=current_status) }}"
+           class="px-3 py-1.5 rounded-xl transition-all whitespace-nowrap {% if current_type == 'sos' %}bg-[#E5384B] text-white{% else %}bg-[#161E2F] text-[#FF8A8A] hover:bg-[#E5384B]/20{% endif %}">
+          🚨 SOS ({{ counts.sos }})
+        </a>
+        <a href="{{ url_for('admin_helpdesk', type='breakdown', status=current_status) }}"
+           class="px-3 py-1.5 rounded-xl transition-all whitespace-nowrap {% if current_type == 'breakdown' %}bg-[#E5384B] text-white{% else %}bg-[#161E2F] text-[#FF8A8A] hover:bg-[#E5384B]/20{% endif %}">
+          🛠️ Breakdown ({{ counts.breakdown }})
+        </a>
+        <a href="{{ url_for('admin_helpdesk', type='bus_missed', status=current_status) }}"
+           class="px-3 py-1.5 rounded-xl transition-all whitespace-nowrap {% if current_type == 'bus_missed' %}bg-[#FFA586] text-[#161E2F]{% else %}bg-[#161E2F] text-[#AEB5C6] hover:text-white{% endif %}">
+          ⏱️ Bus Missed ({{ counts.bus_missed }})
+        </a>
+        <a href="{{ url_for('admin_helpdesk', type='complaint', status=current_status) }}"
+           class="px-3 py-1.5 rounded-xl transition-all whitespace-nowrap {% if current_type == 'complaint' %}bg-[#FFA586] text-[#161E2F]{% else %}bg-[#161E2F] text-[#AEB5C6] hover:text-white{% endif %}">
+          📢 Complaints ({{ counts.complaint }})
+        </a>
+      </div>
+
+      <!-- Status Filter -->
+      <div class="flex items-center gap-2 pt-2 border-t border-[#384358] text-[11px] font-bold text-[#AEB5C6]">
+        <span>Status:</span>
+        <a href="{{ url_for('admin_helpdesk', type=current_type) }}" class="{% if not current_status %}text-[#FFA586] underline{% else %}hover:text-white{% endif %}">All</a>
+        <span>·</span>
+        <a href="{{ url_for('admin_helpdesk', type=current_type, status='open') }}" class="{% if current_status == 'open' %}text-[#FFA586] underline{% else %}hover:text-white{% endif %}">Open</a>
+        <span>·</span>
+        <a href="{{ url_for('admin_helpdesk', type=current_type, status='in_review') }}" class="{% if current_status == 'in_review' %}text-[#FFA586] underline{% else %}hover:text-white{% endif %}">In Review</a>
+        <span>·</span>
+        <a href="{{ url_for('admin_helpdesk', type=current_type, status='resolved') }}" class="{% if current_status == 'resolved' %}text-[#FFA586] underline{% else %}hover:text-white{% endif %}">Resolved</a>
+      </div>
+    </div>
+
+    <!-- Tickets List -->
+    <div class="space-y-3">
+      {% for req in requests %}
+      <div class="card p-5 rounded-2xl border-l-4 space-y-3 transition-all {% if req.type == 'sos' or req.type == 'breakdown' %}border-l-[#E5384B] bg-gradient-to-r from-[#541A2E]/20 to-[#242F49]{% elif req.status == 'resolved' %}border-l-[#34D399]{% else %}border-l-[#FFA586]{% endif %}">
+        
+        <!-- Ticket Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase font-mono {% if req.type == 'sos' or req.type == 'breakdown' %}bg-[#E5384B] text-white{% else %}bg-[#161E2F] text-[#FFA586] border border-[#384358]{% endif %}">
+              {{ req.type|upper }}
+            </span>
+            <span class="text-xs font-extrabold text-[#F4EFEC]">
+              {{ req.student_name or req.user_role|title }}
+              {% if req.student_roll %}<span class="text-[#AEB5C6] font-mono">({{ req.student_roll }})</span>{% endif %}
+            </span>
+            {% if req.route_code %}
+            <span class="chip chip-sky text-[10px]">{{ req.route_code }}</span>
+            {% endif %}
+            {% if req.bus_reg %}
+            <span class="text-[11px] text-[#AEB5C6] font-mono">{{ req.bus_reg }}</span>
+            {% endif %}
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="chip {% if req.status == 'open' %}chip-amber{% elif req.status == 'in_review' %}chip-sky{% else %}chip-emerald{% endif %} text-[10px]">
+              {{ req.status|upper }}
+            </span>
+            <span class="text-[11px] text-[#AEB5C6] font-mono">Ticket #{{ req.id }}</span>
+          </div>
+        </div>
+
+        <!-- Issue Reason & Message -->
+        <div class="p-3 rounded-xl bg-[#161E2F] border border-[#384358] space-y-1">
+          <div class="text-xs font-bold text-[#FFA586]">
+            {{ req.reason or 'Incident Description' }}
+          </div>
+          <p class="text-xs text-[#F4EFEC] leading-relaxed">
+            {{ req.message }}
+          </p>
+          {% if req.admin_note %}
+          <div class="mt-2 pt-2 border-t border-[#384358] text-[11px] text-[#34D399] font-mono">
+            <strong>Internal Note / Resolution:</strong> {{ req.admin_note }} (by {{ req.handled_by or 'Transport Office' }})
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Action Controls Form (Inline Status Update & Internal Note) -->
+        <form onsubmit="updateTicketStatus(event, '{{ req.id }}')" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+          <select name="status" class="h-9 rounded-xl bg-[#161E2F] border border-[#384358] px-3 text-xs text-white font-bold">
+            <option value="open" {% if req.status == 'open' %}selected{% endif %}>Open</option>
+            <option value="in_review" {% if req.status == 'in_review' %}selected{% endif %}>In Review</option>
+            <option value="resolved" {% if req.status == 'resolved' %}selected{% endif %}>Resolved</option>
+          </select>
+
+          <input
+            type="text"
+            name="admin_note"
+            placeholder="Add internal resolution note for student..."
+            value="{{ req.admin_note or '' }}"
+            class="flex-1 h-9 rounded-xl bg-[#161E2F] border border-[#384358] px-3 text-xs text-white placeholder-slate-500"
+          >
+
+          <button type="submit" class="h-9 px-4 rounded-xl bg-[#FFA586] hover:bg-[#ffb59c] text-[#161E2F] font-bold text-xs shrink-0 cursor-pointer">
+            Update Ticket
+          </button>
+        </form>
+
+      </div>
+      {% else %}
+      <div class="card p-12 text-center text-xs text-[#AEB5C6] space-y-2">
+        <div class="w-12 h-12 rounded-2xl bg-[#34D399]/10 text-[#34D399] flex items-center justify-center mx-auto text-xl">
+          ✓
+        </div>
+        <div class="text-sm font-bold text-[#F4EFEC]">All Tickets Cleared</div>
+        <p>No help requests match the selected filter criteria.</p>
+      </div>
+      {% endfor %}
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateTicketStatus(e, reqId) {
+  e.preventDefault();
+  const form = e.target;
+  const status = form.status.value;
+  const note = form.admin_note.value;
+
+  fetch(`/api/admin/help-requests/${reqId}/update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: status, admin_note: note, handled_by: 'Transport Desk' })
+  }).then(r => r.json()).then(data => {
+    alert("Ticket updated and notification transmitted to passenger.");
+    window.location.reload();
+  });
+}
+</script>
+{% endblock %}

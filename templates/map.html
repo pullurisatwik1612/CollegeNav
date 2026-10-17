@@ -1,33 +1,174 @@
 {% extends "base.html" %}
-{% block content %}
-<h1 class="text-xl font-bold mb-2">Live bus map</h1>
-<div id="map" class="h-[60vh] rounded-xl overflow-hidden border bg-slate-200"></div>
-<div class="mt-2 flex flex-wrap gap-2 text-xs">{% for r in routes %}<span class="bg-white border rounded-full px-2 py-1"><span class="dot" style="background:{{ r.color }}"></span> {{ r.code }}</span>{% endfor %}</div>
-<div id="status" class="mt-2 text-xs text-slate-500">Loading...</div>
+
+{% block title %}
+  {% if student_mode %}Your Bus Map ({{ student_bus }}) • CollegeNav 2.0{% else %}Live Fleet Radar • CollegeNav 2.0{% endif %}
 {% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-4 font-sans text-[#F4EFEC]">
+  
+  <!-- Header Row -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#384358]">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-[#34D399] animate-pulse"></span>
+        <span class="text-xs font-extrabold uppercase tracking-wider text-[#FFA586]">
+          {% if student_mode %}Assigned Bus Telemetry{% else %}Campus Fleet Radar{% endif %}
+        </span>
+      </div>
+      <h1 class="text-2xl font-extrabold font-display tracking-tight text-[#F4EFEC] mt-0.5">
+        {% if student_mode %}Your Bus Live GPS ({{ student_bus }}){% else %}Live Campus Fleet Map{% endif %}
+      </h1>
+      <p class="text-xs text-[#AEB5C6] mt-0.5">
+        {% if student_mode %}
+          Showing strictly your assigned bus ({{ student_bus }} · Route {{ student_route }}) and boarding stops.
+        {% else %}
+          Real-time GPS positions of active transit fleet buses.
+        {% endif %}
+      </p>
+    </div>
+
+    <div class="flex items-center gap-2">
+      {% if student_mode %}
+      <a href="{{ url_for('student_home') }}" class="btn btn-secondary text-xs px-3.5 py-2">
+        ← Back to My Bus
+      </a>
+      {% else %}
+      <a href="{{ url_for('routes_list') }}" class="btn btn-secondary text-xs px-3.5 py-2">
+        Routes Directory
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Map Container -->
+  <div class="card p-3 rounded-[24px] space-y-3 relative overflow-hidden shadow-2xl">
+    <div class="flex items-center justify-between px-1">
+      <div class="flex items-center gap-2">
+        <span id="gps-indicator" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#161E2F] border border-[#384358] text-[11px] font-bold text-[#34D399]">
+          <span class="w-2 h-2 rounded-full bg-[#34D399] animate-pulse"></span>
+          <span id="gps-indicator-text">Live GPS Active</span>
+        </span>
+      </div>
+      <div id="status" class="text-xs font-mono text-[#AEB5C6]">Connecting to GPS radar...</div>
+    </div>
+
+    <div id="map" class="h-[62vh] rounded-[20px] overflow-hidden border border-[#384358] bg-[#161E2F]"></div>
+  </div>
+
+  <!-- Route Tags -->
+  <div class="flex flex-wrap items-center gap-2 text-xs">
+    <span class="text-[11px] font-bold uppercase tracking-wider text-[#AEB5C6]">
+      {% if student_mode %}Your Route:{% else %}Active Routes:{% endif %}
+    </span>
+    {% for r in routes %}
+    <span class="px-3 py-1 rounded-xl bg-[#242F49] border border-[#384358] text-[#F4EFEC] font-bold flex items-center gap-2 shadow-sm font-mono text-xs">
+      <span class="w-2.5 h-2.5 rounded-full" style="background: {{ r.color or '#FFA586' }}"></span>
+      <span>{{ r.code }}</span>
+      <span class="text-[#AEB5C6] font-normal font-sans">{{ r.name }}</span>
+    </span>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}
+
 {% block scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
 const ROUTES = {{ routes|tojson }};
-const map = L.map('map').setView([17.33, 78.6], 10);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '&copy; OpenStreetMap'}).addTo(map);
-const all = [];
-ROUTES.forEach(r => { if (r.stops.length) { const pts = r.stops.map(s => [s.lat, s.lng]); all.push(...pts);
-  L.polyline(pts, {color: r.color, weight: 4, opacity: .7}).addTo(map).bindTooltip(r.code + ' ' + r.name);
-  r.stops.forEach(s => L.circleMarker([s.lat, s.lng], {radius: 4, color: r.color, fillColor: '#fff', fillOpacity: 1, weight: 2}).addTo(map).bindTooltip(s.name)); } });
-if (all.length) map.fitBounds(all, {padding: [20, 20]});
-const markers = {};
-async function refresh(){
-  try {
-    const d = await (await fetch('/api/live')).json(); let n = 0, sim = 0;
-    ROUTES.forEach(r => { const v = d[r.id];
-      if (v && v.available) { n++; if (v.source === 'sim') sim++; const ll = [v.lat, v.lng];
-        if (!markers[r.id]) { markers[r.id] = L.marker(ll, {icon: L.divIcon({html: '🚌', className: 'bus-icon', iconSize: [30, 30]})}).addTo(map); }
-        markers[r.id].setLatLng(ll).bindTooltip(`${r.code} · ${v.bus} · ${v.label}`);
-      } else if (markers[r.id]) { map.removeLayer(markers[r.id]); delete markers[r.id]; } });
-    $('status').textContent = n ? `${n} bus${n > 1 ? 'es' : ''} on the map` + (sim ? ` (${sim} simulated for demo)` : ' (live GPS)') : 'No live buses right now. Check scheduled times under Routes.';
-  } catch (e) { $('status').textContent = 'Could not load live data.'; }
+const IS_STUDENT_MODE = {{ 'true' if student_mode else 'false' }};
+
+const map = L.map('map').setView([17.33, 78.6], 11);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; OpenStreetMap'
+}).addTo(map);
+
+const allPts = [];
+ROUTES.forEach(r => {
+  if (r.stops && r.stops.length) {
+    const pts = r.stops.map(s => [s.lat, s.lng]);
+    allPts.push(...pts);
+
+    // Soft glow line underneath
+    L.polyline(pts, { color: '#FFA586', weight: 8, opacity: 0.15 }).addTo(map);
+
+    // Primary route line
+    L.polyline(pts, { color: r.color || '#FFA586', weight: 4, opacity: 0.9 }).addTo(map).bindTooltip(r.code + ' • ' + r.name);
+
+    // Stop markers
+    r.stops.forEach((s, idx) => {
+      const isLast = (idx === r.stops.length - 1);
+      L.circleMarker([s.lat, s.lng], {
+        radius: 6,
+        color: '#FFA586',
+        fillColor: '#161E2F',
+        fillOpacity: 1,
+        weight: 2
+      }).addTo(map).bindTooltip(s.name + (isLast ? ' (Campus Gate)' : ''));
+    });
+  }
+});
+
+if (allPts.length) {
+  map.fitBounds(allPts, { padding: [35, 35] });
 }
-refresh(); setInterval(refresh, 6000);
+
+// Bus Markers
+const markers = {};
+
+const createBusIcon = (busReg) => {
+  return L.divIcon({
+    html: `<div class="relative w-8 h-8 rounded-full bg-[#B51A2B] border-2 border-white shadow-xl flex items-center justify-center text-white cursor-pointer"><span class="animate-ping absolute inset-0 rounded-full bg-[#B51A2B] opacity-50"></span><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="6" width="18" height="12" rx="3"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></div>`,
+    className: '',
+    iconSize: [32, 32],
+    iconAnchor: [16, 16]
+  });
+};
+
+async function refreshLive() {
+  try {
+    const res = await fetch('/api/live');
+    const d = await res.json();
+    let count = 0;
+
+    ROUTES.forEach(r => {
+      const v = d[r.id];
+      if (v && v.available && v.lat && v.lng) {
+        count++;
+        const ll = [v.lat, v.lng];
+        if (!markers[r.id]) {
+          markers[r.id] = L.marker(ll, { icon: createBusIcon(v.bus) }).addTo(map);
+        } else {
+          markers[r.id].setLatLng(ll);
+        }
+        markers[r.id].bindTooltip(`<strong>${r.code}</strong> • ${v.bus} • ${v.label}`);
+      } else if (markers[r.id]) {
+        map.removeLayer(markers[r.id]);
+        delete markers[r.id];
+      }
+    });
+
+    const statusEl = document.getElementById('status');
+    const indicatorEl = document.getElementById('gps-indicator');
+    const indicatorText = document.getElementById('gps-indicator-text');
+
+    if (count > 0) {
+      statusEl.textContent = IS_STUDENT_MODE ? 'Your assigned bus live position synced.' : `${count} bus(es) transmitting live GPS.`;
+      indicatorEl.className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#161E2F] border border-[#384358] text-[11px] font-bold text-[#34D399]";
+      indicatorText.textContent = "Live GPS Active";
+    } else {
+      statusEl.textContent = IS_STUDENT_MODE ? 'Driver has not started GPS broadcast yet.' : 'Waiting for driver GPS broadcast.';
+      indicatorEl.className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#161E2F] border border-[#384358] text-[11px] font-bold text-[#FF8A8A]";
+      indicatorText.textContent = "GPS Standby";
+    }
+  } catch (err) {
+    document.getElementById('status').textContent = 'Telemetry reconnecting...';
+  }
+}
+
+refreshLive();
+setInterval(refreshLive, 4000);
 </script>
 {% endblock %}

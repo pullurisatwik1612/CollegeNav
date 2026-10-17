@@ -1,54 +1,90 @@
-# CollegeNav: Intelligent College Bus Navigation
-Flask + SQLite + Tailwind + Leaflet (OpenStreetMap). No paid services and no API keys needed.
+# CollegeNav 2.0 • Campus Fleet Tracking & Transit Management System
 
-## Run (2 minutes)
+Intelligent College Bus Navigation & Real-Time Fleet Platform for **CVR College of Engineering**.
+Built with Python 3 + Flask, SQLite (WAL mode), Jinja2 templates, Leaflet (OpenStreetMap), Tailwind CDN, and the **Crimson Night** unified design system.
+
+---
+
+## 🚀 Fast Launch
+
 ```bash
-python -m venv venv && source venv/bin/activate        # Windows: venv\Scripts\activate
+# Using uv (recommended)
+uv run --with flask,tzdata python app.py
+
+# Or standard virtual environment:
+python -m venv venv
+venv\Scripts\activate       # Linux/macOS: source venv/bin/activate
 pip install -r requirements.txt
-python app.py                                           # http://localhost:5000
+python app.py
 ```
-Admin: http://localhost:5000/admin (password `admin123`; set `ADMIN_PASSWORD` to change).
-Reset all data: stop the app, delete `collegenav.db`, start again (demo data re-seeds).
+App runs locally at: **`http://localhost:5000`**
 
-## How it covers the 9 expected outcomes
-| # | Outcome | Where |
-|---|---|---|
-| 01 | Digital records of buses, routes, stops, schedules | /admin (Routes, Stops, Buses) |
-| 02 | Search by start and destination | Home page; typing, swap, or "use my location" |
-| 03 | Stops, sequence, schedule | /routes/<id>: map, stop order, departure times |
-| 04 | Suggest suitable routes | Ranked by next departure; nearest-stop finder; one-change journeys |
-| 05 | Notify about changes, delays | Admin > Notices; students get an in-app pop-up and optional browser notification within ~15 s |
-| 06 | Admin updates | /admin: edit stops, order, minutes, times, status, notices |
-| 07 | Live tracking and ETAs | /driver on a phone sends real GPS; ETAs per stop; demo simulator when no GPS |
-| 08 | Mobile-friendly | Responsive UI with bottom navigation |
-| 09 | Mark unavailable or outdated info | "Verified N days ago" badges, Suspended routes, "GPS lost" and "unavailable" messages |
+---
 
-## Replace demo data with the real college routes (do this first, ~45 min)
-1. Collect from the transport office: stop names, order, approximate minutes between stops, departure times, days, bus numbers.
-2. /admin > Stops: add each stop (tap the map to set the pin).
-3. /admin > Routes > create route > add stops in order with "minutes after first stop" > add departure times.
-4. Use "Create return route" to generate the evening direction, then set its times.
-5. Delete the demo routes and stops (delete routes first, then stops).
-6. Set `COLLEGE_NAME` and `DEMO=0` (hides the demo footer).
-To start with an empty database: set `AUTO_SEED=0` before the first run.
+## 🔑 Login Credentials
 
-## Live tracking: how it works
-- Real: open `/driver` on the bus driver's phone, pick the bus, enter its PIN (/admin > Buses), tap Start. Position is sent every ~4 s. ETAs are computed by projecting the GPS point onto the route and using the minutes between stops. If no ping arrives for 90 s the app says "GPS lost" and falls back.
-- Demo: /admin > Overview > Live tracking mode. "Demo loop" keeps buses moving at any time of day. The UI always labels simulated data as simulated.
-- Phones only share GPS over HTTPS (localhost works on the same machine). Deploying gives HTTPS automatically.
+Direct Unified Sign In at **`/login`**:
 
-## Deploy (backup link for judges)
-1. Push to GitHub. 2. render.com > New > Web Service > the repo.
-3. Build: `pip install -r requirements.txt`   Start: `gunicorn app:app`
-4. Env vars: `SECRET_KEY`, `ADMIN_PASSWORD`, `COLLEGE_NAME`, `DEMO=0`.
-Important: free hosting wipes the SQLite file on restart or redeploy, so the demo data re-seeds and admin edits disappear.
-Make your admin edits AFTER the final deploy, and open the site once before presenting (free instances sleep). Safest plan: present from your laptop at localhost, keep the public link as backup.
+| Role | Identifier | Password | Access / Purpose |
+| :--- | :--- | :--- | :--- |
+| **Student** | Roll No: `23CS101` (Aarav Patel) | `stud123` | My Bus ETA hero, assigned bus GPS map, 5-min alert, "Not travelling today" skip, Help & SOS |
+| **Driver (Regular)** | Emp ID: `DRV-01` (Ramesh Kumar) | `drv123` | Duty console, Live GPS broadcast, **"Arrived at Stop"** countdown, 6 one-tap student alerts, student manifest |
+| **Driver (Substitute)** | Emp ID: `DRV-SUB` (Suresh Babu) | `drv123` | Guided substitute mode with turn-by-turn navigation, voice directions, stop photos, and route tips |
+| **Transport Admin** | Username: `admin` | `admin123` | 236px desktop control room, active SOS alert banner, 50-seat hard capacity guard, Help Desk, substitute dispatcher |
 
-## Files
-`app.py` (all logic, one file) | `templates/` (UI) | `.agent/` (Antigravity rules and workflows) | `SPEC.md`, `TASKS.md`, `PITCH.md`, `MASTER_PROMPT_COLLEGENAV.md`
+---
 
-## Troubleshooting
-- Map blank: needs internet for the OpenStreetMap tiles and Tailwind CDN. Keep a hotspot ready.
-- "Use my location" does nothing: allow location in the browser; needs HTTPS or localhost.
-- Port busy: `PORT=5001 python app.py`.
-- Times look wrong on a server: set `TZ_NAME=Asia/Kolkata`.
+## 🌟 Key CollegeNav 2.0 Features
+
+### 1. "Crimson Night" Design System
+* **Deep Navy & Crimson Palette**: `#161E2F` (page bg), `#242F49` (cards), `#FFA586` (primary peach accent), `#B51A2B` → `#541A2E` (hero gradient), `#E5384B` (urgent emergency).
+* **Typography**: Plus Jakarta Sans everywhere (Google Fonts).
+* **Custom SVG Brand**: Custom bus-in-pin logo (`/static/logo.svg` & `/static/favicon.svg`).
+* **Clean Line Icons**: Inline SVGs with 2px stroke and round caps (no emoji icons).
+
+### 2. Student Experience (Mobile-First 390px)
+* **Order of Interface**:
+  1. Header with greeting and route chip (`R1 · TS 08 UA 1001`).
+  2. **Arrival Hero Card**: Massive ETA countdown, expected time, stops away, and green gradient when bus is at stop or ≤ 2 min away.
+  3. **Live GPS Map**: Centered strictly on the student's assigned bus and route.
+  4. **Driver Card**: Avatar initial, driver name, and direct phone link (no capacity/seat crowding shown to students).
+  5. **5-Min Approaching Alert**: Toggle with sound and browser notification preference saved per student.
+  6. **"Not travelling today"**: One-tap skip with instant Undo option.
+* **4 Floating Tabs**: My Bus, Routes (evening destination search & 1-day pass requests), Notices, and Help.
+
+### 3. Emergency SOS & Help Desk
+* **3-Second Hold SOS**: Circular SVG progress ring button prevents accidental triggers.
+* **Incident Reasons**: Medical, Harassment, Accident, Feeling Unsafe, Other.
+* Transmits live coordinates and displays an acknowledgement badge when the transport desk acknowledges the alert.
+* **Help Desk**: Centralized ticketing for complaints, bus-missed reports, and driver breakdown alerts.
+
+### 4. Driver Duty Console
+* **GPS Telemetry**: Live phone GPS broadcasting taking full priority.
+* **"Arrived at Stop"**: Instantly signals "Bus is here!" to students at that stop with a 2-minute countdown timer.
+* **6 Quick Messages**: Late 5m, Late 15m, Heavy Traffic, Route Diverted, Leaving Now, Breakdown (Urgent).
+* **Passenger Manifest**: Live counters for boarding, skipping (crossed out in red), and picked up (one-tap tickbox).
+* **Guided Substitute Mode**: Automatic route guidance, turn-by-turn Google Maps link, browser speech synthesis voice guide, landmark directions, and stop preview.
+
+### 5. Fleet Control & Capacity
+* **Strict 50-Seat Limit**: Hard capacity limit prevents over-allocation.
+* **Substitute Driver Dispatcher**: Easily assign substitute drivers with date ranges and automated student notifications.
+
+---
+
+## ⏱️ 2-Minute Presentation Demo Script
+
+1. **Step 1: Student View (0:00 - 0:40)**
+   - Sign in as Student (`23CS101` / `stud123`).
+   - Highlight the **Crimson Night** design, ETA hero countdown, and strict assigned bus map.
+   - Show the "Not travelling today" button with Undo.
+   - Switch to **Help** tab and demonstrate the 3-second hold SOS trigger.
+2. **Step 2: Admin Control Room (0:40 - 1:15)**
+   - Sign in as Admin (`admin` / `admin123`).
+   - Point out the active emergency banner for the SOS with student details and acknowledge button.
+   - Show the 4 stats cards, live fleet radar, and 50-seat bus capacity strip.
+   - Open **Help Desk** to review tickets and assign a substitute driver in **Buses & Drivers**.
+3. **Step 3: Driver Console (1:15 - 2:00)**
+   - Sign in as Driver (`DRV-01` / `drv123`).
+   - Tap **Start Trip** (starts live GPS broadcasting).
+   - Tap **Arrived at Stop** and demonstrate the 2-minute wait timer.
+   - Tap a quick message (e.g. **Late 5 min**) and open **Students** manifest to tick off passengers.

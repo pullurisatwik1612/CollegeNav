@@ -26,7 +26,7 @@ DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE, "collegenav.db"))
 
 # ----------------------------- CONFIG ----------------------------------------
 APP_NAME = os.environ.get("APP_NAME", "CollegeNav")
-COLLEGE_NAME = os.environ.get("COLLEGE_NAME", "CampusSolve Engineering College")
+COLLEGE_NAME = os.environ.get("COLLEGE_NAME", "CVR College of Engineering")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 DEMO = os.environ.get("DEMO", "1") == "1"
 GPS_FRESH_SEC = 90          # a GPS ping older than this is treated as lost
@@ -43,7 +43,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-collegenav-transit-key-2026")
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS stops(
   id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, landmark TEXT,
-  lat REAL NOT NULL, lng REAL NOT NULL);
+  lat REAL NOT NULL, lng REAL NOT NULL, landmark_text TEXT, direction_text TEXT, photo_path TEXT, usual_wait_sec INTEGER DEFAULT 60);
 CREATE TABLE IF NOT EXISTS routes(
   id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL, name TEXT NOT NULL,
   color TEXT NOT NULL DEFAULT '#2563eb', status TEXT NOT NULL DEFAULT 'active',
@@ -72,7 +72,8 @@ CREATE TABLE IF NOT EXISTS students(
   stop_id INTEGER,
   seat_no INTEGER,
   not_travelling_date TEXT,
-  is_demo INTEGER DEFAULT 0);
+  is_demo INTEGER DEFAULT 0,
+  notify_5min INTEGER DEFAULT 0);
 CREATE TABLE IF NOT EXISTS drivers(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   emp_id TEXT UNIQUE NOT NULL,
@@ -119,6 +120,66 @@ CREATE TABLE IF NOT EXISTS complaints(
   message TEXT NOT NULL,
   created_ts REAL NOT NULL,
   status TEXT NOT NULL DEFAULT 'open');
+CREATE TABLE IF NOT EXISTS help_requests(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  type TEXT NOT NULL, /* sos | bus_missed | complaint | desk_message | pass_request | breakdown */
+  user_role TEXT NOT NULL,
+  user_id INTEGER,
+  student_name TEXT,
+  student_roll TEXT,
+  route_id INTEGER,
+  bus_id INTEGER,
+  reason TEXT,
+  message TEXT,
+  lat REAL,
+  lng REAL,
+  status TEXT NOT NULL DEFAULT 'open', /* open | in_review | resolved | cancelled */
+  acknowledged_at REAL,
+  created_at REAL NOT NULL,
+  updated_at REAL NOT NULL,
+  handled_by TEXT,
+  admin_note TEXT);
+CREATE TABLE IF NOT EXISTS sos_locations(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  help_request_id INTEGER NOT NULL,
+  lat REAL NOT NULL,
+  lng REAL NOT NULL,
+  at REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS substitute_assignments(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  bus_id INTEGER NOT NULL,
+  route_id INTEGER NOT NULL,
+  regular_driver_id INTEGER NOT NULL,
+  substitute_driver_id INTEGER NOT NULL,
+  start_date TEXT NOT NULL,
+  end_date TEXT NOT NULL,
+  note TEXT,
+  created_by TEXT,
+  active INTEGER NOT NULL DEFAULT 1);
+CREATE TABLE IF NOT EXISTS route_tips(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  route_id INTEGER NOT NULL,
+  text TEXT NOT NULL,
+  author TEXT,
+  created_at REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS stop_arrivals(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  trip_id TEXT,
+  bus_id INTEGER NOT NULL,
+  stop_id INTEGER NOT NULL,
+  arrived_at REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS pickups(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  date TEXT NOT NULL,
+  bus_id INTEGER NOT NULL,
+  student_id INTEGER NOT NULL,
+  picked_at REAL NOT NULL,
+  UNIQUE(date, bus_id, student_id));
+CREATE TABLE IF NOT EXISTS quick_messages(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT UNIQUE NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL);
 """
 ALERT_KINDS = ["delay", "cancelled", "diversion", "info"]
 DAY_NAMES = {1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 7: "Sun"}
@@ -197,6 +258,85 @@ def set_setting(key, value):
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     conn.executescript(SCHEMA)
+
+    # Safe column migrations for existing databases
+    cols_to_add = [
+        ("stops", "landmark_text", "TEXT"),
+        ("stops", "direction_text", "TEXT"),
+        ("stops", "photo_path", "TEXT"),
+        ("stops", "usual_wait_sec", "INTEGER DEFAULT 60"),
+        ("students", "notify_5min", "INTEGER DEFAULT 0"),
+    ]
+    for table, col, col_type in cols_to_add:
+        try:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}")
+        except sqlite3.OperationalError:
+            pass
+
+    # Seed quick messages if missing
+    try:
+        qm_count = conn.execute("SELECT COUNT(*) FROM quick_messages").fetchone()[0]
+        if qm_count == 0:
+            messages = [
+                ("late_5", "Late 5 min", "Bus {route} is running about 5 minutes late."),
+                ("late_15", "Late 15 min", "Bus {route} is running about 15 minutes late."),
+                ("traffic", "Heavy traffic", "Heavy traffic on the route. Arrival times may slip."),
+                ("diverted", "Route diverted", "Bus is taking a diversion. Check the live map."),
+                ("leaving", "Leaving now", "Bus is leaving {stop} now."),
+                ("breakdown", "Breakdown", "Bus has broken down. The transport office has been informed."),
+            ]
+            conn.executemany("INSERT INTO quick_messages(code, title, message) VALUES(?,?,?)", messages)
+    except Exception:
+        pass
+
+    # Seed substitute driver if missing
+    try:
+        sub_drv = conn.execute("SELECT id FROM drivers WHERE emp_id='DRV-SUB'").fetchone()
+        if not sub_drv:
+            pwd_hash = generate_password_hash("drv123")
+            conn.execute(
+                "INSERT INTO drivers(emp_id, name, password_hash, phone, bus_id) VALUES(?,?,?,?,NULL)",
+                ("DRV-SUB", "Suresh Babu", pwd_hash, "+91 98480 99999")
+            )
+    except Exception:
+        pass
+
+    # Seed sample stop directions / landmarks if empty
+    try:
+        conn.execute("UPDATE stops SET landmark_text='Near Metro Pillar 12', direction_text='Stop at: left side, in front of Reliance Fresh, after the flyover' WHERE name LIKE '%LB Nagar%' AND (direction_text IS NULL OR direction_text='')")
+        conn.execute("UPDATE stops SET landmark_text='Opposite Bus Shelter', direction_text='Stop at: main road bay, beside State Bank of India' WHERE name LIKE '%Hastinapuram%' AND (direction_text IS NULL OR direction_text='')")
+        conn.execute("UPDATE stops SET landmark_text='Near Andhra Bank Crossroads', direction_text='Stop at: service road entrance, near Government Maternity Hospital' WHERE name LIKE '%Koti%' AND (direction_text IS NULL OR direction_text='')")
+    except Exception:
+        pass
+
+    # Seed sample route tips
+    try:
+        rt_count = conn.execute("SELECT COUNT(*) FROM route_tips").fetchone()[0]
+        if rt_count == 0:
+            r1 = conn.execute("SELECT id FROM routes WHERE code='R1'").fetchone()
+            if r1:
+                conn.execute(
+                    "INSERT INTO route_tips(route_id, text, author, created_at) VALUES(?,?,?,?)",
+                    (r1[0], "Heavy school traffic near Dilsukhnagar junction between 7:30 and 7:45 AM. Take service road after metro pillar 45.", "Ramesh Kumar (Regular Driver)", time.time() - 86400)
+                )
+    except Exception:
+        pass
+
+    # Seed sample help request if empty
+    try:
+        hr_count = conn.execute("SELECT COUNT(*) FROM help_requests").fetchone()[0]
+        if hr_count == 0:
+            s1 = conn.execute("SELECT id, name, roll_no, bus_id FROM students WHERE roll_no='23CS101'").fetchone()
+            now = time.time()
+            if s1:
+                conn.execute(
+                    "INSERT INTO help_requests(type, user_role, user_id, student_name, student_roll, bus_id, reason, message, status, created_at, updated_at) "
+                    "VALUES('complaint', 'student', ?, ?, ?, ?, 'AC / Ventilation', 'AC airflow in the middle rows is weak during afternoon return trip.', 'open', ?, ?)",
+                    (s1[0], s1[1], s1[2], s1[3], now - 7200, now - 7200)
+                )
+    except Exception:
+        pass
+
     conn.commit()
     n = conn.execute("SELECT COUNT(*) FROM stops").fetchone()[0]
     conn.close()
@@ -274,7 +414,7 @@ def build_live(stops, off, source, reg, lat, lng, age):
         e = s["offset_min"] - off
         etas.append({"stop_id": s["stop_id"], "name": s["name"], "eta_min": None if e < -0.5 else max(0, round(e))})
     return {"available": True, "source": source,
-            "label": "Live GPS" if source == "gps" else "Simulated (demo data)",
+            "label": "Live GPS" if source == "gps" else "Scheduled",
             "bus": reg, "lat": lat, "lng": lng, "offset": round(off, 1), "age_sec": age, "etas": etas}
 
 
@@ -296,14 +436,9 @@ def live_for_route(route_id):
                 return build_live(stops, offset_from_position(stops, b["lat"], b["lng"]), "gps",
                                   b["reg_no"], b["lat"], b["lng"], int(age))
             stale_msg = f"GPS from {b['reg_no']} was lost {int(age // 60)} min ago."
-    mode = get_setting("sim_mode", "loop")
-    if mode != "off":
-        off = sim_offset(route_id, stops, mode)
-        if off is not None:
-            lat, lng = pos_at_offset(stops, off)
-            return build_live(stops, off, "sim", buses[0]["reg_no"] if buses else "Campus Bus", lat, lng, 0)
     return {"available": False, "message": (stale_msg + " " if stale_msg else "") +
-            "Live location unavailable. Showing scheduled times only."}
+            "Live location unavailable. Waiting for driver GPS broadcast."}
+
 
 
 # ------------------------------- alerts -------------------------------------
@@ -447,11 +582,74 @@ def find_routes(from_stop, to_stop, query_min, today):
 
 
 # ------------------------------- auth & roles -------------------------------
+def get_active_substitute_for_bus(bus_id):
+    if not bus_id:
+        return None
+    today = local_now().strftime("%Y-%m-%d")
+    return db().execute(
+        "SELECT sa.*, d.name AS substitute_name, d.phone AS substitute_phone, "
+        "reg_d.name AS regular_name, reg_d.phone AS regular_phone "
+        "FROM substitute_assignments sa "
+        "JOIN drivers d ON d.id = sa.substitute_driver_id "
+        "JOIN drivers reg_d ON reg_d.id = sa.regular_driver_id "
+        "WHERE sa.bus_id = ? AND sa.active = 1 AND sa.start_date <= ? AND sa.end_date >= ? "
+        "ORDER BY sa.id DESC LIMIT 1",
+        (bus_id, today, today)
+    ).fetchone()
+
+
+def get_substitute_assignment_for_driver(driver_id):
+    if not driver_id:
+        return None
+    today = local_now().strftime("%Y-%m-%d")
+    return db().execute(
+        "SELECT sa.*, b.reg_no AS bus_reg, b.capacity AS bus_capacity, "
+        "r.id AS route_id, r.code AS route_code, r.name AS route_name, r.color AS route_color, "
+        "reg_d.name AS regular_name, reg_d.phone AS regular_phone "
+        "FROM substitute_assignments sa "
+        "JOIN buses b ON b.id = sa.bus_id "
+        "JOIN routes r ON r.id = sa.route_id "
+        "JOIN drivers reg_d ON reg_d.id = sa.regular_driver_id "
+        "WHERE sa.substitute_driver_id = ? AND sa.active = 1 AND sa.start_date <= ? AND sa.end_date >= ? "
+        "ORDER BY sa.id DESC LIMIT 1",
+        (driver_id, today, today)
+    ).fetchone()
+
+
+def is_student_picked_up_today(student_id):
+    today = local_now().strftime("%Y-%m-%d")
+    row = db().execute("SELECT id FROM pickups WHERE student_id=? AND date=?", (student_id, today)).fetchone()
+    return bool(row)
+
+
+def is_stop_arrived_now(stop_id, bus_id):
+    now = time.time()
+    row = db().execute(
+        "SELECT arrived_at FROM stop_arrivals WHERE stop_id=? AND bus_id=? AND arrived_at > ? "
+        "ORDER BY arrived_at DESC LIMIT 1",
+        (stop_id, bus_id, now - 180)
+    ).fetchone()
+    return bool(row)
+
+
+def get_active_sos():
+    return db().execute(
+        "SELECT hr.*, r.code AS route_code, r.name AS route_name, "
+        "b.reg_no AS bus_reg, d.name AS driver_name, d.phone AS driver_phone "
+        "FROM help_requests hr "
+        "LEFT JOIN routes r ON r.id = hr.route_id "
+        "LEFT JOIN buses b ON b.id = hr.bus_id "
+        "LEFT JOIN drivers d ON d.bus_id = b.id "
+        "WHERE hr.type = 'sos' AND hr.status IN ('open', 'in_review') "
+        "ORDER BY hr.created_at DESC"
+    ).fetchall()
+
+
 def get_current_student():
     sid = session.get("student_id")
     if not sid:
         return None
-    return db().execute(
+    stu = db().execute(
         "SELECT s.*, b.reg_no AS bus_reg, b.capacity AS bus_capacity, b.route_id, "
         "r.code AS route_code, r.name AS route_name, r.color AS route_color, "
         "st.name AS stop_name, st.lat AS stop_lat, st.lng AS stop_lng, "
@@ -462,19 +660,46 @@ def get_current_student():
         "LEFT JOIN stops st ON st.id = s.stop_id "
         "LEFT JOIN drivers d ON d.bus_id = b.id "
         "WHERE s.id = ?", (sid,)).fetchone()
+    if not stu:
+        return None
+    res = dict(stu)
+    sub = get_active_substitute_for_bus(stu["bus_id"])
+    if sub:
+        res["has_substitute"] = True
+        res["substitute_driver"] = dict(sub)
+        res["driver_name"] = sub["substitute_name"]
+        res["driver_phone"] = sub["substitute_phone"]
+    else:
+        res["has_substitute"] = False
+        res["substitute_driver"] = None
+    res["is_picked_up"] = is_student_picked_up_today(stu["id"])
+    res["is_arrived"] = is_stop_arrived_now(stu["stop_id"], stu["bus_id"]) if stu["stop_id"] and stu["bus_id"] else False
+    return res
 
 
 def get_current_driver():
     did = session.get("driver_id")
     if not did:
         return None
-    return db().execute(
+    sub = get_substitute_assignment_for_driver(did)
+    if sub:
+        drv_base = db().execute("SELECT * FROM drivers WHERE id=?", (did,)).fetchone()
+        res = dict(drv_base) if drv_base else {}
+        res.update(dict(sub))
+        res["is_substitute"] = True
+        return res
+    drv = db().execute(
         "SELECT d.*, b.reg_no AS bus_reg, b.capacity, b.route_id, "
         "r.code AS route_code, r.name AS route_name, r.color AS route_color "
         "FROM drivers d "
         "LEFT JOIN buses b ON b.id = d.bus_id "
         "LEFT JOIN routes r ON r.id = b.route_id "
         "WHERE d.id = ?", (did,)).fetchone()
+    if drv:
+        res = dict(drv)
+        res["is_substitute"] = False
+        return res
+    return None
 
 
 def student_required(fn):
@@ -555,10 +780,12 @@ def unified_login():
                 return redirect(url_for("driver_home"))
 
     if request.method == "POST":
-        role = request.form.get("role")
+        role = request.form.get("role", "student")
+        ident = request.form.get("identifier", "").strip().upper()
+        pwd = request.form.get("password", "").strip()
+
         if role == "student":
-            roll = request.form.get("roll_no", "").strip().upper()
-            pwd = request.form.get("password", "").strip()
+            roll = (request.form.get("roll_no", "") or ident).strip().upper()
             s = db().execute("SELECT * FROM students WHERE UPPER(roll_no)=?", (roll,)).fetchone()
             if s and (check_password_hash(s["password_hash"], pwd) or pwd == "stud123"):
                 session.clear()
@@ -571,8 +798,7 @@ def unified_login():
             active_tab = "student"
 
         elif role == "driver":
-            emp_id = request.form.get("emp_id", "").strip().upper()
-            pwd = request.form.get("password", "").strip()
+            emp_id = (request.form.get("emp_id", "") or ident).strip().upper()
             d = db().execute("SELECT * FROM drivers WHERE UPPER(emp_id)=?", (emp_id,)).fetchone()
             if d and (check_password_hash(d["password_hash"], pwd) or pwd == "drv123"):
                 session.clear()
@@ -942,6 +1168,20 @@ def student_home():
         except (ValueError, TypeError):
             pass
 
+    # All routes with stops for browsing in Routes tab
+    all_routes_data = []
+    for r in db().execute("SELECT * FROM routes ORDER BY code"):
+        st = get_route_stops(r["id"])
+        times = [x["depart_time"] for x in db().execute(
+            "SELECT depart_time FROM schedules WHERE route_id=? ORDER BY depart_time", (r["id"],))]
+        all_routes_data.append({"r": r, "stops": st, "times": times, "fresh": freshness(r["last_verified"])})
+
+    # Student's help requests
+    my_requests = db().execute(
+        "SELECT * FROM help_requests WHERE user_role='student' AND user_id=? ORDER BY created_at DESC",
+        (stu["id"],)
+    ).fetchall()
+
     return render_template("student_home.html", stu=stu, stops=stops,
                            live=live, stop_status=stop_status, eta_min=eta_min,
                            is_not_travelling=is_not_travelling,
@@ -961,7 +1201,9 @@ def student_home():
                            today_change_request=today_change_request,
                            evening_search_stop_id=evening_search_stop_id,
                            evening_search_stop=evening_search_stop,
-                           evening_buses_results=evening_buses_results)
+                           evening_buses_results=evening_buses_results,
+                           all_routes=all_routes_data,
+                           my_requests=my_requests)
 
 
 @app.route("/api/student/find-evening-buses")
@@ -1180,6 +1422,351 @@ def api_student_sos():
     )
 
 
+# ------------------------------- SOS & Help Desk APIs -----------------------
+@app.route("/api/sos", methods=["POST"])
+def api_sos_create():
+    data = request.get_json(silent=True) or request.form
+    lat = float(data.get("lat", 0)) if data.get("lat") else None
+    lng = float(data.get("lng", 0)) if data.get("lng") else None
+    reason = data.get("reason", "Emergency SOS triggered")
+    
+    role = session.get("role", "student")
+    user_id = session.get("student_id") if role == "student" else session.get("driver_id")
+    stu_name = None
+    stu_roll = None
+    route_id = None
+    bus_id = None
+    
+    if role == "student" and user_id:
+        stu = get_current_student()
+        if stu:
+            stu_name = stu["name"]
+            stu_roll = stu["roll_no"]
+            bus_id = stu["bus_id"]
+            route_id = stu["route_id"]
+    elif role == "driver" and user_id:
+        drv = get_current_driver()
+        if drv:
+            stu_name = drv["name"]
+            stu_roll = drv["emp_id"]
+            bus_id = drv["bus_id"]
+            route_id = drv["route_id"]
+            
+    now = time.time()
+    cur = db().execute(
+        "INSERT INTO help_requests(type, user_role, user_id, student_name, student_roll, "
+        "route_id, bus_id, reason, message, lat, lng, status, created_at, updated_at) "
+        "VALUES('sos', ?, ?, ?, ?, ?, ?, ?, 'Emergency SOS Alert', ?, ?, 'open', ?, ?)",
+        (role, user_id, stu_name, stu_roll, route_id, bus_id, reason, lat, lng, now, now)
+    )
+    req_id = cur.lastrowid
+    if lat and lng:
+        db().execute("INSERT INTO sos_locations(help_request_id, lat, lng, at) VALUES(?,?,?,?)",
+                     (req_id, lat, lng, now))
+    
+    if route_id:
+        db().execute(
+            "INSERT INTO alerts(route_id, kind, message, created_ts, expires_ts, active) "
+            "VALUES(?, 'cancelled', ?, ?, ?, 1)",
+            (route_id, f"URGENT: SOS Alert triggered by {stu_name or 'passenger'} on Route!", now, now + 3600)
+        )
+    db().commit()
+    return jsonify({"ok": True, "id": req_id})
+
+
+@app.route("/api/sos/<int:req_id>/location", methods=["POST"])
+def api_sos_location(req_id):
+    data = request.get_json(silent=True) or request.form
+    lat = float(data.get("lat", 0))
+    lng = float(data.get("lng", 0))
+    now = time.time()
+    db().execute("UPDATE help_requests SET lat=?, lng=?, updated_at=? WHERE id=?",
+                 (lat, lng, now, req_id))
+    db().execute("INSERT INTO sos_locations(help_request_id, lat, lng, at) VALUES(?,?,?,?)",
+                 (req_id, lat, lng, now))
+    db().commit()
+    req = db().execute("SELECT acknowledged_at FROM help_requests WHERE id=?", (req_id,)).fetchone()
+    return jsonify({"ok": True, "acknowledged": bool(req and req["acknowledged_at"])})
+
+
+@app.route("/api/sos/<int:req_id>/reason", methods=["POST"])
+def api_sos_reason(req_id):
+    data = request.get_json(silent=True) or request.form
+    reason = data.get("reason", "Other")
+    db().execute("UPDATE help_requests SET reason=?, updated_at=? WHERE id=?",
+                 (reason, time.time(), req_id))
+    db().commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/sos/<int:req_id>/cancel", methods=["POST"])
+def api_sos_cancel(req_id):
+    db().execute("UPDATE help_requests SET status='cancelled', updated_at=? WHERE id=?",
+                 (time.time(), req_id))
+    db().commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/admin/sos/<int:req_id>/ack", methods=["POST"])
+def api_admin_sos_ack(req_id):
+    if not session.get("admin"):
+        return jsonify({"error": "Admin required"}), 403
+    db().execute("UPDATE help_requests SET acknowledged_at=?, status='in_review', handled_by='Transport Office', updated_at=? WHERE id=?",
+                 (time.time(), time.time(), req_id))
+    db().commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/help-requests", methods=["GET", "POST"])
+def api_help_requests():
+    if request.method == "POST":
+        data = request.get_json(silent=True) or request.form
+        req_type = data.get("type", "complaint")
+        message = data.get("message", "").strip()
+        reason = data.get("reason", data.get("category", "General"))
+        
+        role = session.get("role", "student")
+        user_id = session.get("student_id") if role == "student" else session.get("driver_id")
+        stu_name = None
+        stu_roll = None
+        bus_id = None
+        route_id = None
+        
+        if role == "student" and user_id:
+            stu = get_current_student()
+            if stu:
+                stu_name = stu["name"]
+                stu_roll = stu["roll_no"]
+                bus_id = stu["bus_id"]
+                route_id = stu["route_id"]
+        elif role == "driver" and user_id:
+            drv = get_current_driver()
+            if drv:
+                stu_name = drv["name"]
+                stu_roll = drv["emp_id"]
+                bus_id = drv["bus_id"]
+                route_id = drv["route_id"]
+                
+        now = time.time()
+        cur = db().execute(
+            "INSERT INTO help_requests(type, user_role, user_id, student_name, student_roll, "
+            "route_id, bus_id, reason, message, status, created_at, updated_at) "
+            "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)",
+            (req_type, role, user_id, stu_name, stu_roll, route_id, bus_id, reason, message, now, now)
+        )
+        db().commit()
+        return jsonify({"ok": True, "id": cur.lastrowid})
+
+    role = session.get("role")
+    if role == "student":
+        sid = session.get("student_id")
+        rows = db().execute(
+            "SELECT * FROM help_requests WHERE user_role='student' AND user_id=? ORDER BY created_at DESC",
+            (sid,)
+        ).fetchall()
+    elif session.get("admin"):
+        t_filter = request.args.get("type")
+        s_filter = request.args.get("status")
+        q = "SELECT hr.*, r.code AS route_code, b.reg_no AS bus_reg FROM help_requests hr LEFT JOIN routes r ON r.id=hr.route_id LEFT JOIN buses b ON b.id=hr.bus_id WHERE 1=1"
+        params = []
+        if t_filter:
+            q += " AND hr.type=?"
+            params.append(t_filter)
+        if s_filter:
+            q += " AND hr.status=?"
+            params.append(s_filter)
+        q += " ORDER BY hr.created_at DESC"
+        rows = db().execute(q, params).fetchall()
+    else:
+        return jsonify({"error": "Unauthorized"}), 401
+    return jsonify({"requests": [dict(r) for r in rows]})
+
+
+@app.route("/api/admin/help-requests/<int:req_id>/update", methods=["POST", "PATCH"])
+def api_admin_help_requests_update(req_id):
+    if not session.get("admin"):
+        return jsonify({"error": "Admin required"}), 403
+    data = request.get_json(silent=True) or request.form
+    status = data.get("status")
+    note = data.get("admin_note")
+    handled_by = data.get("handled_by", "Transport Office")
+    
+    updates = ["updated_at=?"]
+    params = [time.time()]
+    if status:
+        updates.append("status=?")
+        params.append(status)
+    if note is not None:
+        updates.append("admin_note=?")
+        params.append(note)
+    if handled_by:
+        updates.append("handled_by=?")
+        params.append(handled_by)
+    params.append(req_id)
+    
+    db().execute(f"UPDATE help_requests SET {', '.join(updates)} WHERE id=?", params)
+    db().commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/driver/arrived", methods=["POST"])
+def api_driver_arrived():
+    did = session.get("driver_id")
+    if not did:
+        return jsonify({"error": "Driver login required"}), 401
+    drv = get_current_driver()
+    if not drv or not drv["bus_id"]:
+        return jsonify({"error": "No assigned bus"}), 400
+        
+    data = request.get_json(silent=True) or request.form
+    stop_id = int(data.get("stop_id", 0))
+    stop = db().execute("SELECT * FROM stops WHERE id=?", (stop_id,)).fetchone()
+    if not stop:
+        return jsonify({"error": "Invalid stop"}), 400
+        
+    now = time.time()
+    db().execute("INSERT INTO stop_arrivals(trip_id, bus_id, stop_id, arrived_at) VALUES(?,?,?,?)",
+                 ("trip_" + local_now().strftime("%Y%m%d"), drv["bus_id"], stop_id, now))
+                 
+    db().execute(
+        "INSERT INTO bus_positions(bus_id,lat,lng,speed,updated_ts,source) VALUES(?,?,?,0,?,'gps') "
+        "ON CONFLICT(bus_id) DO UPDATE SET lat=excluded.lat, lng=excluded.lng, speed=0, updated_ts=excluded.updated_ts, source='gps'",
+        (drv["bus_id"], stop["lat"], stop["lng"], now)
+    )
+    
+    msg = f"Bus {drv['route_code']} has arrived at {stop['name']}. Boarding now open!"
+    db().execute("INSERT INTO alerts(route_id, kind, message, created_ts, expires_ts, active) VALUES(?,?,?,?,?,1)",
+                 (drv["route_id"], "info", msg, now, now + 300))
+    db().commit()
+    return jsonify({"ok": True, "stop_id": stop_id, "stop_name": stop["name"]})
+
+
+@app.route("/api/driver/quick-message", methods=["POST"])
+def api_driver_quick_message():
+    did = session.get("driver_id")
+    if not did:
+        return jsonify({"error": "Driver login required"}), 401
+    drv = get_current_driver()
+    if not drv:
+        return jsonify({"error": "Driver not found"}), 404
+        
+    data = request.get_json(silent=True) or request.form
+    code = data.get("code")
+    stop_name = data.get("stop_name", "your stop")
+    
+    msg_map = {
+        "late_5": f"Bus {drv['route_code']} is running about 5 minutes late.",
+        "late_15": f"Bus {drv['route_code']} is running about 15 minutes late.",
+        "traffic": "Heavy traffic on the route. Arrival times may slip.",
+        "diverted": "Bus is taking a diversion. Check the live map.",
+        "leaving": f"Bus is leaving {stop_name} now.",
+        "breakdown": "Bus has broken down. The transport office has been informed.",
+    }
+    msg = msg_map.get(code, f"Update from driver of Bus {drv['route_code']}.")
+    kind = "delay" if "late" in code or "traffic" in code else ("diversion" if code == "diverted" else ("cancelled" if code == "breakdown" else "info"))
+    
+    now = time.time()
+    db().execute("INSERT INTO alerts(route_id, kind, message, created_ts, expires_ts, active) VALUES(?,?,?,?,?,1)",
+                 (drv["route_id"], kind, msg, now, now + 3600))
+                 
+    if code == "breakdown":
+        db().execute(
+            "INSERT INTO help_requests(type, user_role, user_id, student_name, student_roll, "
+            "route_id, bus_id, reason, message, status, created_at, updated_at) "
+            "VALUES('breakdown', 'driver', ?, ?, ?, ?, ?, 'Vehicle Breakdown', ?, 'open', ?, ?)",
+            (did, drv["name"], drv["emp_id"], drv["route_id"], drv["bus_id"],
+             f"Bus {drv['bus_reg']} ({drv['route_code']}) reported breakdown near {stop_name}.", now, now)
+        )
+    db().commit()
+    return jsonify({"ok": True, "message": msg})
+
+
+@app.route("/api/driver/pickup", methods=["POST"])
+def api_driver_pickup():
+    did = session.get("driver_id")
+    if not did:
+        return jsonify({"error": "Driver login required"}), 401
+    drv = get_current_driver()
+    if not drv:
+        return jsonify({"error": "Driver not found"}), 404
+        
+    data = request.get_json(silent=True) or request.form
+    student_id = int(data.get("student_id", 0))
+    action = data.get("action", "pick")
+    today = local_now().strftime("%Y-%m-%d")
+    
+    if action == "unpick":
+        db().execute("DELETE FROM pickups WHERE date=? AND bus_id=? AND student_id=?",
+                     (today, drv["bus_id"], student_id))
+    else:
+        db().execute(
+            "INSERT INTO pickups(date, bus_id, student_id, picked_at) VALUES(?,?,?,?) "
+            "ON CONFLICT(date, bus_id, student_id) DO NOTHING",
+            (today, drv["bus_id"], student_id, time.time())
+        )
+    db().commit()
+    return jsonify({"ok": True, "student_id": student_id, "picked": (action == "pick")})
+
+
+@app.route("/api/driver/substitute-context", methods=["GET"])
+def api_driver_substitute_context():
+    did = session.get("driver_id")
+    if not did:
+        return jsonify({"is_substitute": False}), 401
+    sub = get_substitute_assignment_for_driver(did)
+    if not sub:
+        return jsonify({"is_substitute": False})
+    
+    tips = db().execute("SELECT * FROM route_tips WHERE route_id=? ORDER BY created_at DESC",
+                        (sub["route_id"],)).fetchall()
+    stops = db().execute(
+        "SELECT s.*, rs.seq, rs.offset_min FROM route_stops rs "
+        "JOIN stops s ON s.id=rs.stop_id WHERE rs.route_id=? ORDER BY rs.seq",
+        (sub["route_id"],)
+    ).fetchall()
+    
+    return jsonify({
+        "is_substitute": True,
+        "assignment": dict(sub),
+        "tips": [dict(t) for t in tips],
+        "stops": [dict(s) for s in stops]
+    })
+
+
+@app.route("/api/student/notify-pref", methods=["POST"])
+def api_student_notify_pref():
+    sid = session.get("student_id")
+    if not sid:
+        return jsonify({"error": "Student required"}), 401
+    data = request.get_json(silent=True) or request.form
+    val = 1 if str(data.get("notify_5min")).lower() in ("true", "1", "yes") else 0
+    db().execute("UPDATE students SET notify_5min=? WHERE id=?", (val, sid))
+    db().commit()
+    return jsonify({"ok": True, "notify_5min": bool(val)})
+
+
+@app.route("/api/routes/search")
+def api_routes_search():
+    to_query = request.args.get("to", "").strip()
+    if not to_query:
+        return jsonify({"results": []})
+        
+    stop = db().execute("SELECT * FROM stops WHERE name LIKE ? LIMIT 1", (f"%{to_query}%",)).fetchone()
+    if not stop:
+        return jsonify({"results": []})
+        
+    results = get_evening_buses_for_destination(stop["id"])
+    return jsonify({
+        "destination": dict(stop),
+        "results": results
+    })
+
+
+@app.route("/demo")
+def demo_page():
+    return redirect(url_for("unified_login"))
+
+
 # ------------------------------- driver portal ------------------------------
 @app.route("/driver")
 @driver_required
@@ -1194,13 +1781,24 @@ def driver_home():
     not_travelling_count = 0
     today_str = local_now().strftime("%Y-%m-%d")
 
+    pickups_set = set()
+    if drv["bus_id"]:
+        for row in db().execute("SELECT student_id FROM pickups WHERE bus_id=? AND date=?", (drv["bus_id"], today_str)):
+            pickups_set.add(row["student_id"])
+
     if drv["route_id"] and drv["bus_id"]:
         stops = get_route_stops(drv["route_id"])
         # Query students for each stop on this driver's bus
-        all_stu = db().execute(
+        all_stu_rows = db().execute(
             "SELECT s.*, st.name AS stop_name FROM students s "
             "JOIN stops st ON st.id = s.stop_id "
             "WHERE s.bus_id = ? ORDER BY s.stop_id, s.seat_no", (drv["bus_id"],)).fetchall()
+
+        all_stu = []
+        for r in all_stu_rows:
+            d_s = dict(r)
+            d_s["picked"] = (d_s["id"] in pickups_set)
+            all_stu.append(d_s)
 
         total_students = len(all_stu)
         not_travelling_count = sum(1 for s in all_stu if s["not_travelling_date"] == today_str)
@@ -1219,15 +1817,27 @@ def driver_home():
                 "time_clock": clock(parse_hhmm("07:00") + st["offset_min"]),
                 "passengers": passengers,
                 "boarding_count": sum(1 for p in passengers if p["not_travelling_date"] != today_str),
-                "skipped_count": sum(1 for p in passengers if p["not_travelling_date"] == today_str)
+                "skipped_count": sum(1 for p in passengers if p["not_travelling_date"] == today_str),
+                "picked_count": sum(1 for p in passengers if p.get("picked"))
             })
 
     # Check last GPS ping
     pos = db().execute("SELECT * FROM bus_positions WHERE bus_id=?", (drv["bus_id"],)).fetchone() if drv["bus_id"] else None
 
+    # Route tips for substitute or regular driver
+    tips = db().execute("SELECT * FROM route_tips WHERE route_id=? ORDER BY created_at DESC", (drv["route_id"],)).fetchall() if drv["route_id"] else []
+
+    # Route notices
+    notices = active_alerts(drv["route_id"]) if drv["route_id"] else []
+
+    sub_assign = get_substitute_assignment_for_driver(drv["id"])
+
     return render_template("driver_home.html", drv=drv, stops=stops, manifest=manifest,
                            total_students=total_students, not_travelling_count=not_travelling_count,
-                           active_boarders=total_students - not_travelling_count, pos=pos)
+                           active_boarders=total_students - not_travelling_count,
+                           picked_count=len(pickups_set), pos=pos, tips=tips,
+                           notices=notices, sub_assign=sub_assign,
+                           is_substitute=bool(sub_assign))
 
 
 @app.route("/api/driver/broadcast-delay", methods=["POST"])
@@ -1348,12 +1958,26 @@ def route_detail(route_id):
 
 @app.route("/map")
 def live_map():
+    stu = None
+    if session.get("role") == "student" and session.get("student_id"):
+        stu = db().execute("SELECT s.*, b.route_id, b.reg_no FROM students s LEFT JOIN buses b ON b.id=s.bus_id WHERE s.id=?", (session["student_id"],)).fetchone()
+
+    # If student is viewing the map, ONLY show their assigned route and respective bus!
+    if stu and stu["route_id"]:
+        rs = []
+        r = db().execute("SELECT * FROM routes WHERE id=?", (stu["route_id"],)).fetchone()
+        if r:
+            rs.append({"id": r["id"], "code": r["code"], "name": r["name"], "color": r["color"],
+                       "stops": get_route_stops(r["id"])})
+        buses = db().execute("SELECT b.id, b.reg_no, r.code AS route_code, r.color AS route_color FROM buses b LEFT JOIN routes r ON r.id=b.route_id WHERE b.id=?", (stu["bus_id"],)).fetchall()
+        return render_template("map.html", routes=rs, buses=buses, student_mode=True, student_bus=stu["reg_no"], student_route=r["code"] if r else "")
+
     rs = []
     for r in db().execute("SELECT * FROM routes WHERE status='active' ORDER BY code"):
         rs.append({"id": r["id"], "code": r["code"], "name": r["name"], "color": r["color"],
                    "stops": get_route_stops(r["id"])})
     buses = db().execute("SELECT b.id, b.reg_no, r.code AS route_code, r.color AS route_color FROM buses b LEFT JOIN routes r ON r.id=b.route_id").fetchall()
-    return render_template("map.html", routes=rs, buses=buses)
+    return render_template("map.html", routes=rs, buses=buses, student_mode=False)
 
 
 @app.route("/alerts")
@@ -1384,9 +2008,18 @@ def api_live(route_id):
 @app.route("/api/live")
 def api_live_all():
     out = {}
+    # If student is logged in, only return live GPS for their assigned route & bus
+    if session.get("role") == "student" and session.get("student_id"):
+        stu = db().execute("SELECT s.id, b.route_id FROM students s LEFT JOIN buses b ON b.id=s.bus_id WHERE s.id=?", (session["student_id"],)).fetchone()
+        if stu and stu["route_id"]:
+            out[stu["route_id"]] = live_for_route(stu["route_id"])
+            return jsonify(out)
+        return jsonify({})
+
     for r in db().execute("SELECT id FROM routes WHERE status='active'"):
         out[r["id"]] = live_for_route(r["id"])
     return jsonify(out)
+
 
 
 @app.route("/api/alerts")
@@ -1443,11 +2076,18 @@ def inject_admin_badges():
     if session.get("role") == "admin":
         try:
             today_str = local_now().strftime("%Y-%m-%d")
-            count = db().execute("SELECT COUNT(*) FROM bus_change_requests WHERE request_date=? AND status='pending'", (today_str,)).fetchone()[0]
-            return {"pending_bus_requests_count": count}
+            c = db()
+            bus_req_count = c.execute("SELECT COUNT(*) FROM bus_change_requests WHERE request_date=? AND status='pending'", (today_str,)).fetchone()[0]
+            help_count = c.execute("SELECT COUNT(*) FROM help_requests WHERE status='open'").fetchone()[0]
+            sos_list = get_active_sos()
+            return {
+                "pending_bus_requests_count": bus_req_count,
+                "open_help_requests_count": help_count,
+                "active_sos_count": len(sos_list),
+            }
         except Exception:
             pass
-    return {"pending_bus_requests_count": 0}
+    return {"pending_bus_requests_count": 0, "open_help_requests_count": 0, "active_sos_count": 0}
 
 
 # ------------------------------- admin --------------------------------------
@@ -1462,6 +2102,7 @@ def admin_home():
         "students": c.execute("SELECT COUNT(*) FROM students").fetchone()[0],
         "allocated": c.execute("SELECT COUNT(*) FROM students WHERE bus_id IS NOT NULL").fetchone()[0],
         "unallocated": c.execute("SELECT COUNT(*) FROM students WHERE bus_id IS NULL").fetchone()[0],
+        "open_help": c.execute("SELECT COUNT(*) FROM help_requests WHERE status='open'").fetchone()[0],
     }
     stale = [r for r in c.execute("SELECT * FROM routes ORDER BY code") if freshness(r["last_verified"])["level"] != "ok"]
     gps = c.execute("SELECT COUNT(*) FROM bus_positions WHERE source='gps' AND updated_ts>?",
@@ -1481,13 +2122,36 @@ def admin_home():
         (today_str,)
     ).fetchone()[0]
     recent_complaints = c.execute("SELECT * FROM complaints ORDER BY id DESC LIMIT 5").fetchall()
+    
+    # Active SOS and recent help desk tickets
+    active_sos = get_active_sos()
+    recent_help_requests = c.execute(
+        "SELECT hr.*, r.code AS route_code, b.reg_no AS bus_reg FROM help_requests hr "
+        "LEFT JOIN routes r ON r.id=hr.route_id "
+        "LEFT JOIN buses b ON b.id=hr.bus_id "
+        "ORDER BY hr.created_at DESC LIMIT 8"
+    ).fetchall()
+    
+    # Active substitutes
+    substitutes = c.execute("""
+        SELECT sa.*, d1.name AS sub_name, d2.name AS reg_name, b.reg_no AS bus_reg, r.code AS route_code
+        FROM substitute_assignments sa
+        JOIN drivers d1 ON d1.id=sa.substitute_driver_id
+        JOIN drivers d2 ON d2.id=sa.regular_driver_id
+        JOIN buses b ON b.id=sa.bus_id
+        JOIN routes r ON r.id=sa.route_id
+        WHERE sa.active=1
+    """).fetchall()
 
     return render_template("admin_home.html", counts=counts, stale=stale, gps=gps,
                            sim_mode=get_setting("sim_mode", "loop"), fresh=freshness,
                            buses_summary=buses_summary,
                            routes=c.execute("SELECT * FROM routes ORDER BY code").fetchall(),
                            pending_bus_requests_count=pending_bus_requests_count,
-                           recent_complaints=recent_complaints)
+                           recent_complaints=recent_complaints,
+                           active_sos=active_sos,
+                           recent_help_requests=recent_help_requests,
+                           substitutes=substitutes)
 
 
 @app.route("/admin/allocations")
@@ -1657,10 +2321,8 @@ def admin_reassign_student():
 @app.route("/admin/sim", methods=["POST"])
 @admin_required
 def admin_sim():
-    mode = request.form.get("mode", "loop")
-    set_setting("sim_mode", mode if mode in ("off", "trips", "loop") else "loop")
-    flash("Simulation mode updated.", "ok")
     return redirect(url_for("admin_home"))
+
 
 
 @app.route("/admin/stops", methods=["GET", "POST"])
@@ -1767,8 +2429,212 @@ def admin_buses():
         db().commit()
         flash("Saved.", "ok")
         return redirect(url_for("admin_buses"))
-    return render_template("admin_buses.html", routes=db().execute("SELECT id, code, name FROM routes ORDER BY code").fetchall(),
-                           buses=db().execute("SELECT * FROM buses ORDER BY reg_no").fetchall())
+        
+    c = db()
+    routes = c.execute("SELECT id, code, name FROM routes ORDER BY code").fetchall()
+    buses = c.execute("SELECT b.*, r.code AS route_code, d.name AS regular_driver_name FROM buses b LEFT JOIN routes r ON r.id=b.route_id LEFT JOIN drivers d ON d.bus_id=b.id ORDER BY b.reg_no").fetchall()
+    all_drivers = c.execute("SELECT * FROM drivers ORDER BY name").fetchall()
+    sub_drivers = [d for d in all_drivers if "SUB" in d["emp_id"] or "Substitute" in d["name"]]
+    if not sub_drivers:
+        sub_drivers = all_drivers
+    
+    substitutes = c.execute("""
+        SELECT sa.*, d1.name AS sub_name, d2.name AS reg_name, b.reg_no AS bus_reg, r.code AS route_code
+        FROM substitute_assignments sa
+        JOIN drivers d1 ON d1.id=sa.substitute_driver_id
+        JOIN drivers d2 ON d2.id=sa.regular_driver_id
+        JOIN buses b ON b.id=sa.bus_id
+        JOIN routes r ON r.id=sa.route_id
+        WHERE sa.active=1
+    """).fetchall()
+    
+    return render_template("admin_buses.html", routes=routes, buses=buses,
+                           substitutes=substitutes, sub_drivers=sub_drivers)
+
+
+@app.route("/admin/substitute/assign", methods=["POST"])
+@admin_required
+def admin_substitute_assign():
+    c = db()
+    try:
+        bus_id = int(request.form.get("bus_id", 0))
+        sub_driver_id = int(request.form.get("substitute_driver_id", 0))
+    except ValueError:
+        flash("Invalid bus or driver ID.", "warn")
+        return redirect(url_for("admin_buses"))
+        
+    start_date = request.form.get("start_date") or local_now().strftime("%Y-%m-%d")
+    end_date = request.form.get("end_date") or local_now().strftime("%Y-%m-%d")
+    note = request.form.get("note", "").strip()
+
+    bus = c.execute("SELECT b.*, r.id AS r_id, r.code AS r_code FROM buses b LEFT JOIN routes r ON r.id=b.route_id WHERE b.id=?", (bus_id,)).fetchone()
+    reg_driver = c.execute("SELECT * FROM drivers WHERE bus_id=?", (bus_id,)).fetchone()
+    sub_driver = c.execute("SELECT * FROM drivers WHERE id=?", (sub_driver_id,)).fetchone()
+
+    if not bus or not reg_driver or not sub_driver:
+        flash("Could not find bus, regular driver or substitute driver.", "warn")
+        return redirect(url_for("admin_buses"))
+
+    now = time.time()
+    c.execute("""
+        INSERT INTO substitute_assignments(bus_id, route_id, regular_driver_id, substitute_driver_id,
+                                          start_date, end_date, note, created_by, active)
+        VALUES(?, ?, ?, ?, ?, ?, ?, 'admin', 1)
+    """, (bus["id"], bus["r_id"], reg_driver["id"], sub_driver["id"], start_date, end_date, note))
+
+    if bus["r_id"]:
+        c.execute("""
+            INSERT INTO alerts(route_id, kind, message, created_ts, expires_ts, active)
+            VALUES(?, 'info', ?, ?, ?, 1)
+        """, (bus["r_id"],
+              f"Notice: Tomorrow your bus {bus['r_code']} will be driven by {sub_driver['name']} (substitute) while {reg_driver['name']} is away.",
+              now, now + 86400))
+    c.commit()
+    flash(f"Substitute {sub_driver['name']} assigned to Bus {bus['reg_no']} ({bus['r_code']}). Students notified.", "ok")
+    return redirect(url_for("admin_buses"))
+
+
+@app.route("/admin/substitute/<int:sub_id>/end", methods=["POST"])
+@admin_required
+def admin_substitute_end(sub_id):
+    c = db()
+    sub = c.execute("""
+        SELECT sa.*, d1.name AS sub_name, d2.name AS reg_name, r.code AS r_code
+        FROM substitute_assignments sa
+        JOIN drivers d1 ON d1.id=sa.substitute_driver_id
+        JOIN drivers d2 ON d2.id=sa.regular_driver_id
+        JOIN routes r ON r.id=sa.route_id
+        WHERE sa.id=?
+    """, (sub_id,)).fetchone()
+
+    if sub:
+        c.execute("UPDATE substitute_assignments SET active=0 WHERE id=?", (sub_id,))
+        now = time.time()
+        c.execute("""
+            INSERT INTO alerts(route_id, kind, message, created_ts, expires_ts, active)
+            VALUES(?, 'info', ?, ?, ?, 1)
+        """, (sub["route_id"], f"{sub['reg_name']} is back on {sub['r_code']} from today.", now, now + 86400))
+        c.commit()
+        flash(f"Substitute assignment ended. {sub['reg_name']} is reinstated on {sub['r_code']}.", "ok")
+    return redirect(url_for("admin_buses"))
+
+
+@app.route("/admin/routes/<int:route_id>/tips", methods=["POST"])
+@admin_required
+def admin_add_route_tip(route_id):
+    tip_text = request.form.get("tip_text", "").strip()
+    author = request.form.get("author", "Transport Office").strip()
+    if tip_text:
+        db().execute("INSERT INTO route_tips(route_id, text, author, created_at) VALUES(?,?,?,?)",
+                     (route_id, tip_text, author, time.time()))
+        db().commit()
+        flash("Route tip added for drivers.", "ok")
+    return redirect(url_for("admin_route", route_id=route_id))
+
+
+@app.route("/admin/helpdesk")
+@admin_required
+def admin_helpdesk():
+    c = db()
+    t_filter = request.args.get("type", "").strip()
+    s_filter = request.args.get("status", "").strip()
+
+    q = ("SELECT hr.*, r.code AS route_code, b.reg_no AS bus_reg "
+         "FROM help_requests hr "
+         "LEFT JOIN routes r ON r.id=hr.route_id "
+         "LEFT JOIN buses b ON b.id=hr.bus_id WHERE 1=1")
+    params = []
+    if t_filter:
+        q += " AND hr.type=?"
+        params.append(t_filter)
+    if s_filter:
+        q += " AND hr.status=?"
+        params.append(s_filter)
+    q += " ORDER BY CASE WHEN hr.type='sos' AND hr.status='open' THEN 0 WHEN hr.status='open' THEN 1 WHEN hr.status='in_review' THEN 2 ELSE 3 END, hr.created_at DESC"
+    requests = c.execute(q, params).fetchall()
+
+    counts = {
+        "all": c.execute("SELECT COUNT(*) FROM help_requests").fetchone()[0],
+        "open": c.execute("SELECT COUNT(*) FROM help_requests WHERE status='open'").fetchone()[0],
+        "sos": c.execute("SELECT COUNT(*) FROM help_requests WHERE type='sos'").fetchone()[0],
+        "breakdown": c.execute("SELECT COUNT(*) FROM help_requests WHERE type='breakdown'").fetchone()[0],
+        "bus_missed": c.execute("SELECT COUNT(*) FROM help_requests WHERE type='bus_missed'").fetchone()[0],
+        "complaint": c.execute("SELECT COUNT(*) FROM help_requests WHERE type='complaint'").fetchone()[0],
+        "resolved": c.execute("SELECT COUNT(*) FROM help_requests WHERE status='resolved'").fetchone()[0],
+    }
+    return render_template("admin_helpdesk.html", requests=requests, counts=counts,
+                           current_type=t_filter, current_status=s_filter)
+
+
+@app.route("/api/admin/sos/active")
+@admin_required
+def api_admin_sos_active():
+    sos_items = get_active_sos()
+    return jsonify(sos=[dict(s) for s in sos_items])
+
+
+@app.route("/api/student/status")
+@student_required
+def api_student_status():
+    stu = get_current_student()
+    if not stu:
+        return jsonify(ok=False), 401
+
+    is_here = is_stop_arrived_now(stu["stop_id"], stu["bus_id"])
+    is_on_bus = is_student_picked_up_today(stu["id"])
+    active_sos = db().execute(
+        "SELECT id, status, acknowledged_at, reason FROM help_requests "
+        "WHERE user_role='student' AND user_id=? AND status IN ('open','in_review') ORDER BY id DESC LIMIT 1",
+        (stu["id"],)
+    ).fetchone()
+
+    sub = get_active_substitute_for_bus(stu["bus_id"])
+
+    live_data = live_for_route(stu["route_id"]) if stu["route_id"] else {"available": False}
+
+    return jsonify({
+        "ok": True,
+        "is_here": is_here,
+        "is_on_bus": is_on_bus,
+        "not_travelling": (stu.get("not_travelling_date") == local_now().strftime("%Y-%m-%d")),
+        "has_substitute": bool(sub),
+        "driver_name": sub["substitute_name"] if sub else stu["driver_name"],
+        "driver_phone": sub["substitute_phone"] if sub else stu["driver_phone"],
+        "active_sos": dict(active_sos) if active_sos else None,
+        "bus_lat": live_data.get("lat"),
+        "bus_lng": live_data.get("lng"),
+        "bus_available": live_data.get("available", False),
+        "bus_reg": stu["bus_reg"],
+        "route_code": stu["route_code"]
+    })
+
+
+
+@app.route("/api/driver/status")
+@driver_required
+def api_driver_status():
+    drv = get_current_driver()
+    if not drv:
+        return jsonify(ok=False), 401
+    today = local_now().strftime("%Y-%m-%d")
+    picked_count = db().execute("SELECT COUNT(*) FROM pickups WHERE bus_id=? AND date=?", (drv["bus_id"], today)).fetchone()[0]
+    total_students = db().execute("SELECT COUNT(*) FROM students WHERE bus_id=?", (drv["bus_id"],)).fetchone()[0]
+    skipping_count = db().execute("SELECT COUNT(*) FROM students WHERE bus_id=? AND not_travelling_date=?", (drv["bus_id"], today)).fetchone()[0]
+
+    active_sos = db().execute(
+        "SELECT id, status, acknowledged_at, reason FROM help_requests "
+        "WHERE user_role='driver' AND user_id=? AND status IN ('open','in_review') ORDER BY id DESC LIMIT 1",
+        (drv["id"],)
+    ).fetchone()
+
+    return jsonify({
+        "ok": True,
+        "picked_count": picked_count,
+        "skipping_count": skipping_count,
+        "boarding_count": total_students - skipping_count,
+        "total_students": total_students,
+        "active_sos": dict(active_sos) if active_sos else None
+    })
 
 
 @app.route("/admin/alerts", methods=["GET", "POST"])
@@ -2002,9 +2868,10 @@ def seed():
     conn.execute("INSERT INTO alerts(route_id,kind,message,created_ts,expires_ts,active) VALUES(?,?,?,?,?,1)",
                  (None, "info", "Campus special express buses will operate for evening lab sessions from 5:30 PM.", now - 43200, None))
 
-    conn.execute("INSERT INTO settings(key,value) VALUES('sim_mode','loop')")
+    conn.execute("INSERT INTO settings(key,value) VALUES('sim_mode','off')")
     conn.commit()
     conn.close()
+
 
 
 init_db()

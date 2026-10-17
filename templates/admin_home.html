@@ -1,262 +1,278 @@
 {% extends "base.html" %}
-{% from "_macros.html" import fresh_badge %}
 
-{% block title %}Fleet Control Center • Admin • {{ app_name }}{% endblock %}
+{% block title %}Transport Office Dashboard • CollegeNav 2.0{% endblock %}
 
 {% block content %}
-{% include "_admin_nav.html" %}
+<div class="flex flex-col lg:flex-row gap-6 items-start">
+  
+  <!-- Left Sidebar (236px desktop / horizontal mobile scroll) -->
+  {% include "_admin_nav.html" %}
 
-<div class="space-y-6">
+  <!-- Main Content Area -->
+  <div class="flex-1 w-full space-y-6">
 
-  <!-- Admin Header -->
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
-    <div>
-      <div class="flex items-center gap-2">
-        <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Campus Transport Command</span>
-        <span class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-          Fleet Active
-        </span>
-      </div>
-      <h1 class="text-xl sm:text-2xl font-extrabold font-display text-white mt-0.5">
-        Admin Overview & Fleet Telemetry
-      </h1>
-      <p class="text-xs text-slate-400">
-        System operations, live bus monitoring, stop allocations, and student reassignment requests.
-      </p>
-    </div>
-
-    <!-- Quick Link to Allocations -->
-    <div class="flex items-center gap-2">
-      <a href="{{ url_for('admin_allocations') }}" class="text-xs px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold shadow-md btn-press flex items-center gap-1.5">
-        <span>👥</span>
-        <span>Manage Fleet Allocations</span>
-      </a>
-    </div>
-  </div>
-
-  <!-- Pending 1-Day Bus Reassignments Alert Banner (If Any) -->
-  {% if pending_bus_requests_count and pending_bus_requests_count > 0 %}
-  <div class="p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-amber-600/15 to-transparent border border-amber-400/50 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-    <div class="flex items-center gap-3">
-      <span class="text-2xl animate-bounce">📋</span>
+    <!-- 1. Header Row -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#384358]">
       <div>
-        <div class="text-xs font-extrabold uppercase tracking-wider text-amber-400">
-          Action Required: {{ pending_bus_requests_count }} Bus Change Request{{ 's' if pending_bus_requests_count > 1 else '' }} Pending
-        </div>
-        <div class="text-xs text-slate-200 mt-0.5">
-          Students have requested 1-day evening bus changes to different city destinations today.
-        </div>
-      </div>
-    </div>
-    <a href="{{ url_for('admin_allocations') }}" class="text-xs font-bold px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 shadow btn-press shrink-0 flex items-center gap-1">
-      <span>Review in Allocations</span>
-      <span>→</span>
-    </a>
-  </div>
-  {% endif %}
-
-  <!-- 6 Metric Cards Overview Grid -->
-  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-    
-    <!-- Stops -->
-    <a href="{{ url_for('admin_stops') }}" class="glass-card rounded-2xl p-4 border border-white/10 hover:border-amber-400/40 transition-all text-center group block">
-      <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">🚏</div>
-      <div class="text-2xl sm:text-3xl font-extrabold text-white font-mono">{{ counts.stops }}</div>
-      <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">Transit Stops</div>
-    </a>
-
-    <!-- Routes -->
-    <a href="{{ url_for('admin_routes') }}" class="glass-card rounded-2xl p-4 border border-white/10 hover:border-amber-400/40 transition-all text-center group block">
-      <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">🛣️</div>
-      <div class="text-2xl sm:text-3xl font-extrabold text-white font-mono">{{ counts.routes }}</div>
-      <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">Active Routes</div>
-    </a>
-
-    <!-- Fleet Buses -->
-    <a href="{{ url_for('admin_buses') }}" class="glass-card rounded-2xl p-4 border border-white/10 hover:border-amber-400/40 transition-all text-center group block">
-      <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">🚌</div>
-      <div class="text-2xl sm:text-3xl font-extrabold text-amber-400 font-mono">{{ counts.buses }}</div>
-      <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">Fleet Buses</div>
-    </a>
-
-    <!-- Students -->
-    <a href="{{ url_for('admin_allocations') }}" class="glass-card rounded-2xl p-4 border border-white/10 hover:border-amber-400/40 transition-all text-center group block">
-      <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">🎓</div>
-      <div class="text-2xl sm:text-3xl font-extrabold text-white font-mono">{{ counts.students }}</div>
-      <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">Total Students</div>
-    </a>
-
-    <!-- Allocated -->
-    <a href="{{ url_for('admin_allocations') }}" class="glass-card rounded-2xl p-4 border border-white/10 hover:border-emerald-400/40 transition-all text-center group block">
-      <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">👥</div>
-      <div class="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono">{{ counts.allocated }}</div>
-      <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">Allocated</div>
-    </a>
-
-    <!-- Unallocated -->
-    <a href="{{ url_for('admin_allocations') }}?bus=unallocated" class="glass-card rounded-2xl p-4 border border-white/10 hover:border-rose-400/40 transition-all text-center group block">
-      <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">⚠️</div>
-      <div class="text-2xl sm:text-3xl font-extrabold {% if counts.unallocated > 0 %}text-amber-400{% else %}text-slate-400{% endif %} font-mono">{{ counts.unallocated }}</div>
-      <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">Unallocated</div>
-    </a>
-
-  </div>
-
-  <!-- Operational Panels Grid -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-    <!-- Card 1: Publish a Transit Notice -->
-    <div class="glass-panel rounded-2xl p-5 border border-white/10 space-y-3 flex flex-col justify-between shadow-xl">
-      <div>
-        <div class="flex items-center gap-2">
-          <span class="text-xl">📢</span>
-          <h2 class="text-base font-extrabold font-display text-white">Broadcast Fleet Alert</h2>
-        </div>
-        <p class="text-xs text-slate-300 mt-1 leading-relaxed">
-          Instantly dispatch route delays, weather warnings, roadblocks, or bus substitutions to student and driver screens.
+        <h1 class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-[#F4EFEC]">
+          Good morning, Transport office
+        </h1>
+        <p class="text-xs text-[#AEB5C6] font-medium mt-0.5">
+          {{ now_clock_str or 'Today' }} · {{ counts.buses }} fleet buses on the road · CVR Campus Dispatch
         </p>
       </div>
 
-      <div class="pt-2 border-t border-white/10 flex items-center justify-between">
-        <span class="text-[11px] text-slate-400">Reaches all connected dashboards in real time</span>
-        <a href="{{ url_for('admin_alerts') }}" class="text-xs font-bold px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-amber-300 hover:text-amber-200 border border-white/15 transition-all flex items-center gap-1.5 btn-press">
-          <span>Manage Notices</span>
-          <span>→</span>
+      <div class="flex items-center gap-2.5">
+        <a href="{{ url_for('admin_alerts') }}" class="btn btn-secondary text-xs px-4 py-2.5">
+          Send notice
+        </a>
+        <a href="{{ url_for('admin_allocations') }}" class="btn btn-primary text-xs px-4 py-2.5">
+          Move a student
         </a>
       </div>
     </div>
 
-    <!-- Card 2: Live Tracking & Simulation Mode -->
-    <div class="glass-panel rounded-2xl p-5 border border-white/10 space-y-3 shadow-xl">
-      <div>
+    <!-- 2. Active SOS Banner (Crimson Gradient, shown when active SOS exists) -->
+    <div id="admin-sos-container" class="space-y-3">
+      {% for s in active_sos %}
+      <div id="sos-card-{{ s.id }}" class="card p-5 rounded-[22px] bg-gradient-to-r from-[#B51A2B] via-[#541A2E] to-[#161E2F] border border-[#E5384B] shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-start gap-3.5">
+          <div class="relative w-10 h-10 rounded-xl bg-white text-[#B51A2B] flex items-center justify-center font-black text-sm shrink-0 shadow-lg">
+            <span class="absolute inset-0 rounded-xl bg-[#E5384B] animate-ping opacity-60"></span>
+            <span class="relative">SOS</span>
+          </div>
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-black uppercase tracking-wider text-white">
+                EMERGENCY ALERT • ROUTE {{ s.route_code or 'R1' }}
+              </span>
+              <span class="text-[11px] font-mono text-[#FFA586]">
+                {{ s.student_roll or 'ID' }}
+              </span>
+            </div>
+            <div class="text-base font-extrabold text-white font-display">
+              SOS from {{ s.student_name or 'Passenger' }}
+            </div>
+            <div class="text-xs text-[#FFD5C6] flex flex-wrap items-center gap-2">
+              <span>Reason: <strong class="text-white">{{ s.reason or 'Emergency triggered' }}</strong></span>
+              <span>•</span>
+              <span>Bus: <strong class="text-white">{{ s.bus_reg or 'TS 08 UA 1001' }}</strong></span>
+              <span>•</span>
+              <span class="text-[#34D399]">Driver notified</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0 flex-wrap">
+          <a href="tel:+919848099999" class="h-10 px-4 rounded-xl bg-white text-[#161E2F] font-bold text-xs flex items-center gap-1.5 shadow">
+            <span>Call student</span>
+          </a>
+          <a href="{{ url_for('live_map') }}" class="h-10 px-4 rounded-xl bg-transparent hover:bg-white/10 text-white border border-white/40 font-bold text-xs flex items-center gap-1.5">
+            <span>View on map</span>
+          </a>
+          <button type="button" onclick="acknowledgeSos('{{ s.id }}')" id="btn-ack-{{ s.id }}" class="h-10 px-4 rounded-xl bg-[#FFA586] text-[#161E2F] font-extrabold text-xs flex items-center gap-1.5 shadow">
+            <span>Acknowledge</span>
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- 3. Four Stat Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+      <!-- 1. Buses on Time -->
+      <div class="card p-4 rounded-2xl space-y-1">
+        <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#AEB5C6]">Buses On Time</div>
+        <div class="text-2xl sm:text-3xl font-extrabold font-mono text-[#34D399]">
+          {{ [counts.buses - 1, 0]|max }} / {{ counts.buses }}
+        </div>
+        <div class="text-[11px] text-[#AEB5C6]">1 bus running delayed</div>
+      </div>
+
+      <!-- 2. Students Allocated -->
+      <a href="{{ url_for('admin_allocations') }}" class="card p-4 rounded-2xl space-y-1 hover:border-[#FFA586] transition-all block group">
+        <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#AEB5C6] group-hover:text-[#FFA586]">Students Allocated</div>
+        <div class="text-2xl sm:text-3xl font-extrabold font-mono text-[#F4EFEC]">
+          {{ counts.allocated }}
+        </div>
+        <div class="text-[11px] text-[#34D399]">Seats guaranteed</div>
+      </a>
+
+      <!-- 3. Need a Seat (Unallocated Peach) -->
+      <a href="{{ url_for('admin_allocations', bus='unallocated') }}" class="card p-4 rounded-2xl space-y-1 hover:border-[#FFA586] transition-all block group border-l-4 border-l-[#FFA586]">
+        <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#FFA586]">Need a Seat</div>
+        <div class="text-2xl sm:text-3xl font-extrabold font-mono text-[#FFA586]">
+          {{ counts.unallocated }}
+        </div>
+        <div class="text-[11px] text-[#AEB5C6]">Waiting for assignment</div>
+      </a>
+
+      <!-- 4. Open Help Requests (Red Accent) -->
+      <a href="{{ url_for('admin_helpdesk') }}" class="card p-4 rounded-2xl space-y-1 hover:border-[#E5384B] transition-all block group border-l-4 border-l-[#E5384B]">
+        <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#FF8A8A]">Open Help Requests</div>
+        <div class="text-2xl sm:text-3xl font-extrabold font-mono text-[#FF8A8A]">
+          {{ counts.open_help }}
+        </div>
+        <div class="text-[11px] text-[#AEB5C6]">SOS, Breakdown, Tickets</div>
+      </a>
+    </div>
+
+    <!-- 4. Row: Live Fleet Map + Help Desk Preview List -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      
+      <!-- Live Fleet Map (2 Cols) -->
+      <div class="lg:col-span-2 card p-4 rounded-[24px] space-y-3">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <span class="text-xl">📡</span>
-            <h2 class="text-base font-extrabold font-display text-white">Live Tracking Mode</h2>
+            <span class="w-2.5 h-2.5 rounded-full bg-[#34D399] animate-pulse"></span>
+            <h2 class="text-sm font-extrabold uppercase tracking-wider text-[#F4EFEC]">Live Fleet Radar</h2>
           </div>
-          <span class="text-[10px] font-mono px-2 py-0.5 rounded-full {% if gps > 0 %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% else %}bg-slate-800 text-slate-400{% endif %}">
-            {{ gps }} bus{{ 'es' if gps != 1 else '' }} sharing GPS
-          </span>
+          <a href="{{ url_for('live_map') }}" class="text-xs font-bold text-[#FFA586] hover:underline flex items-center gap-1">
+            <span>Open full map</span>
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
         </div>
-        <p class="text-xs text-slate-300 mt-1 leading-relaxed">
-          Physical driver phone GPS takes highest priority. When drivers are offline, simulation determines what students see on maps.
-        </p>
+        <div id="admin-fleet-map" class="w-full h-[320px] rounded-2xl bg-[#161E2F] border border-[#384358]"></div>
       </div>
 
-      <form method="post" action="{{ url_for('admin_sim') }}" class="pt-2 border-t border-white/10 space-y-2">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          {% for m, label, sub in [
-            ('loop', 'Demo Loop', 'Buses continuous loop'),
-            ('trips', 'Timetable', 'Follow schedule times'),
-            ('off', 'Disabled', 'Off (radar idle)')
-          ] %}
-          <button 
-            type="submit" 
-            name="mode" 
-            value="{{ m }}" 
-            class="p-2.5 rounded-xl border text-xs text-left transition-all btn-press {% if sim_mode == m %}bg-amber-400 text-slate-950 border-amber-300 font-extrabold shadow-md{% else %}bg-slate-900/60 hover:bg-slate-800 text-slate-300 border-white/10{% endif %}"
-          >
-            <div class="font-bold flex items-center justify-between">
-              <span>{{ label }}</span>
-              {% if sim_mode == m %}<span class="text-slate-950 font-black">✓</span>{% endif %}
+      <!-- Help Desk Preview List (1 Col) -->
+      <div class="card p-4 rounded-[24px] space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-extrabold uppercase tracking-wider text-[#F4EFEC]">Help Desk</h2>
+          <a href="{{ url_for('admin_helpdesk') }}" class="text-xs font-bold text-[#FFA586] hover:underline">
+            See all →
+          </a>
+        </div>
+
+        <div class="space-y-2">
+          {% for hr in recent_help_requests %}
+          <a href="{{ url_for('admin_helpdesk') }}" class="p-3 rounded-xl bg-[#161E2F] border border-[#384358] hover:border-[#FFA586] transition-all block space-y-1">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full {% if hr.type == 'sos' or hr.type == 'breakdown' %}bg-[#E5384B] animate-ping{% elif hr.status == 'open' %}bg-[#FBBF24]{% else %}bg-[#34D399]{% endif %}"></span>
+                <span class="text-xs font-bold text-[#F4EFEC]">{{ hr.student_name or hr.user_role|title }}</span>
+              </div>
+              <span class="chip {% if hr.status == 'open' %}chip-amber{% elif hr.status == 'in_review' %}chip-sky{% else %}chip-emerald{% endif %} text-[9px]">
+                {{ hr.status }}
+              </span>
             </div>
-            <div class="text-[10px] {% if sim_mode == m %}text-slate-800 font-medium{% else %}text-slate-400{% endif %} mt-0.5 truncate">{{ sub }}</div>
-          </button>
+            <div class="text-[11px] text-[#FFA586] font-mono">{{ hr.route_code or 'Campus' }} · {{ hr.reason or hr.type|title }}</div>
+            <p class="text-[11px] text-[#AEB5C6] truncate">{{ hr.message }}</p>
+          </a>
+          {% else %}
+          <div class="p-6 text-center text-xs text-[#AEB5C6]">No help requests filed.</div>
           {% endfor %}
         </div>
-      </form>
-    </div>
-
-  </div>
-
-  <!-- Student Bus Complaints Card -->
-  <div class="glass-panel rounded-2xl p-5 border border-white/10 space-y-3 shadow-xl">
-    <div class="flex items-center justify-between pb-2 border-b border-white/10">
-      <div class="flex items-center gap-2">
-        <span class="text-xl">📮</span>
-        <div>
-          <h2 class="text-base font-extrabold font-display text-white">Student Bus Complaints & Grievance Box</h2>
-          <div class="text-xs text-slate-400">Issues reported directly by students from their assigned buses.</div>
-        </div>
       </div>
-      <span class="text-xs font-mono font-bold px-2.5 py-1 rounded-xl bg-white/5 border border-white/10 text-slate-300">
-        {{ recent_complaints|length }} Recent
-      </span>
+
     </div>
 
-    {% if recent_complaints %}
-    <div class="space-y-2">
-      {% for c in recent_complaints %}
-      <div class="glass-card rounded-xl p-3 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-        <div class="space-y-0.5 min-w-0">
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="font-bold text-amber-400 font-mono">{{ c.bus_reg }}</span>
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">{{ c.category }}</span>
-            <span class="text-slate-400 text-[11px]">By {{ c.student_name }} ({{ c.student_roll }})</span>
+    <!-- 5. "Buses Right Now" Strip (Admins only see capacity 48/50) -->
+    <div class="card p-5 rounded-[24px] space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-sm font-extrabold uppercase tracking-wider text-[#F4EFEC]">
+            Buses Right Now (Live Capacity &amp; Telemetry)
+          </h2>
+          <p class="text-xs text-[#AEB5C6] mt-0.5">
+            Strict 50-passenger capacity tracking · Active routes
+          </p>
+        </div>
+        <a href="{{ url_for('admin_buses') }}" class="text-xs font-bold text-[#FFA586] hover:underline">
+          Manage Buses →
+        </a>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {% for b in buses_summary %}
+        <div class="p-3 rounded-xl bg-[#161E2F] border border-[#384358] space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold text-white" style="background: {{ b.route_color or '#B51A2B' }};">
+              {{ b.route_code }}
+            </span>
+            <span class="text-[11px] font-mono font-bold {% if b.student_count >= b.capacity %}text-[#FF8A8A]{% elif b.student_count >= 45 %}text-[#FBBF24]{% else %}text-[#34D399]{% endif %}">
+              {{ b.student_count }}/{{ b.capacity }}
+            </span>
           </div>
-          <div class="text-slate-200 font-medium italic">"{{ c.message }}"</div>
-        </div>
-        <span class="text-[10px] font-mono text-slate-400 shrink-0">{{ ago(c.created_ts) }}</span>
-      </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    <div class="p-4 rounded-xl bg-white/5 border border-white/10 text-center text-xs text-slate-400">
-      ✨ No complaints currently reported by students.
-    </div>
-    {% endif %}
-  </div>
+          <div class="text-xs font-bold text-[#F4EFEC] font-mono truncate">{{ b.reg_no }}</div>
+          <div class="text-[10px] text-[#AEB5C6] truncate">{{ b.driver_name or 'Driver' }}</div>
 
-  <!-- Card 3: Route Data Health & Verification -->
-  <div class="glass-panel rounded-2xl p-5 border border-white/10 space-y-4 shadow-xl">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/10">
-      <div class="flex items-center gap-2">
-        <span class="text-xl">🛣️</span>
-        <div>
-          <h2 class="text-base font-extrabold font-display text-white">Route Data Health & Verification</h2>
-          <div class="text-xs text-slate-400">Regular audits ensure route stop sequences and timing offsets are verified.</div>
-        </div>
-      </div>
-      {% if stale %}
-      <span class="text-xs font-bold text-amber-300 bg-amber-400/10 border border-amber-400/20 px-3 py-1 rounded-xl">
-        ⚠️ {{ stale|length }} route(s) require verification
-      </span>
-      {% else %}
-      <span class="text-xs font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-xl">
-        ✓ All routes verified up to date
-      </span>
-      {% endif %}
-    </div>
-
-    <!-- Routes Verification Table -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto pr-1">
-      {% for r in routes %}
-      <div class="glass-card rounded-xl p-3 border border-white/10 flex items-center justify-between gap-3 hover:border-white/20 transition-all">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <span class="w-3 h-3 rounded-full shrink-0" style="background: {{ r['color'] or '#3b82f6' }};"></span>
-          <div class="min-w-0">
-            <a href="{{ url_for('admin_route', route_id=r['id']) }}" class="text-xs font-bold text-white hover:text-amber-400 transition-colors truncate block">
-              <span class="font-mono">{{ r['code'] }}</span> • {{ r['name'] }}
-            </a>
-            {% if r['status'] != 'active' %}
-            <span class="text-[10px] text-rose-400 font-semibold">(Suspended)</span>
-            {% endif %}
+          <!-- Capacity Bar -->
+          <div class="w-full bg-[#242F49] h-1.5 rounded-full overflow-hidden">
+            <div class="h-full rounded-full {% if b.student_count >= b.capacity %}bg-[#E5384B]{% elif b.student_count >= 45 %}bg-[#FBBF24]{% else %}bg-[#34D399]{% endif %}"
+                 style="width: {{ [100, (b.student_count / b.capacity * 100)|round]|min }}%;"></div>
           </div>
         </div>
-        <div class="shrink-0">
-          {{ fresh_badge(fresh(r['last_verified'])) }}
-        </div>
+        {% endfor %}
       </div>
-      {% endfor %}
     </div>
 
-    {% if stale %}
-    <p class="text-xs text-amber-400/90 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20">
-      ⚠️ Routes marked unverified will show a data warning to students on their route timeline. Tap any route to verify.
-    </p>
-    {% endif %}
+
   </div>
 
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Admin Acknowledge SOS
+function acknowledgeSos(reqId) {
+  fetch(`/api/admin/sos/${reqId}/ack`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      const btn = document.getElementById(`btn-ack-${reqId}`);
+      if (btn) {
+        btn.textContent = "Acknowledged ✓";
+        btn.className = "h-10 px-4 rounded-xl bg-[#34D399] text-[#161E2F] font-extrabold text-xs";
+        btn.disabled = true;
+      }
+    });
+}
+
+// Admin SOS Poller (Every 5 seconds)
+let lastSosCount = {{ active_sos|length }};
+function pollAdminSos() {
+  fetch('/api/admin/sos/active')
+    .then(r => r.json())
+    .then(data => {
+      if (data.sos && data.sos.length > lastSosCount) {
+        // Play alert sound for new SOS
+        try {
+          const audio = new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU"+Array(200).join("120"));
+          audio.play().catch(() => {});
+        } catch (e) {}
+      }
+      lastSosCount = data.sos ? data.sos.length : 0;
+    });
+}
+setInterval(pollAdminSos, 5000);
+
+// Initialize Leaflet Map for Fleet Radar
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof L !== 'undefined' && document.getElementById('admin-fleet-map')) {
+    const map = L.map('admin-fleet-map', { zoomControl: true, attributionControl: false }).setView([17.3457, 78.5522], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+
+    // Fetch and display all buses
+    fetch('/api/live')
+      .then(r => r.json())
+      .then(routesData => {
+        for (const rid in routesData) {
+          const r = routesData[rid];
+          if (r.buses) {
+            r.buses.forEach(b => {
+              const icon = L.divIcon({
+                html: `<div class="w-6 h-6 rounded-full bg-[#B51A2B] border-2 border-white shadow-lg flex items-center justify-center text-white text-[10px] font-bold font-mono">${r.route_code || 'B'}</div>`,
+                className: '',
+                iconSize: [24, 24]
+              });
+              L.marker([b.lat, b.lng], { icon: icon }).addTo(map)
+                .bindPopup(`<b>${b.bus_reg}</b><br>Route ${r.route_code}<br>Speed: ${b.speed || 30} km/h`);
+            });
+          }
+        }
+      });
+  }
+});
+</script>
 {% endblock %}

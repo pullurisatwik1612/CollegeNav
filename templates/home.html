@@ -52,13 +52,13 @@
     
     <!-- FROM Input Field -->
     <div class="relative">
-      <div class="flex items-center justify-between text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">
-        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Starting Stop</span>
+      <div class="flex items-center justify-between text-[11px] font-bold tracking-wider text-[#AEB5C6] uppercase mb-1.5">
+        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#FFA586]"></span> Starting Stop</span>
       </div>
       <div class="flex gap-2 items-center">
         <div class="relative flex-1">
-          <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-            📍
+          <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#FFA586]">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
           </div>
           <input 
             id="from" 
@@ -68,18 +68,18 @@
             autocomplete="off" 
             required 
             placeholder="Search starting stop or landmark" 
-            class="glass-input w-full rounded-xl pl-10 pr-3 py-3 text-sm sm:text-base text-white placeholder-slate-500 font-medium"
+            class="w-full h-12 rounded-2xl bg-[#161E2F] border border-[#384358] pl-10 pr-3 text-sm text-[#F4EFEC] placeholder-[#7D869C] font-semibold focus:outline-none focus:border-[#FFA586] focus:ring-2 focus:ring-[#FFA586]/30 transition-all"
           >
         </div>
         <button 
           type="button" 
           id="locBtn" 
-          class="shrink-0 h-11 px-3.5 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-slate-200 hover:text-amber-400 transition-all text-sm flex items-center gap-1.5 font-medium btn-press" 
+          class="shrink-0 h-12 px-3.5 rounded-2xl bg-[#242F49] hover:bg-[#384358] active:scale-95 border border-[#384358] text-[#FFA586] transition-all text-xs flex items-center gap-1.5 font-bold cursor-pointer" 
           title="Auto-detect nearest stop" 
           aria-label="Use my location"
         >
-          <span>🎯</span>
-          <span class="hidden sm:inline text-xs">GPS</span>
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
+          <span class="hidden sm:inline">GPS</span>
         </button>
       </div>
     </div>
@@ -89,22 +89,22 @@
       <button 
         type="button" 
         id="swap" 
-        class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 active:scale-90 border border-white/15 text-amber-400 flex items-center justify-center text-sm shadow-md transition-all hover:rotate-180" 
+        class="w-8 h-8 rounded-full bg-[#242F49] hover:bg-[#384358] active:scale-90 border border-[#384358] text-[#FFA586] flex items-center justify-center text-xs shadow-md transition-all cursor-pointer" 
         title="Swap origin and destination" 
         aria-label="Swap start and destination"
       >
-        ⇅
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/><polyline points="17 14 12 9 7 14"/><line x1="12" y1="9" x2="12" y2="21"/></svg>
       </button>
     </div>
 
     <!-- TO Input Field -->
     <div class="relative">
-      <div class="flex items-center justify-between text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">
-        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Destination Stop</span>
+      <div class="flex items-center justify-between text-[11px] font-bold tracking-wider text-[#AEB5C6] uppercase mb-1.5">
+        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#34D399]"></span> Destination Stop</span>
       </div>
       <div class="relative">
-        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-          🏁
+        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#34D399]">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
         </div>
         <input 
           id="to" 
@@ -113,10 +113,9 @@
           list="stoplist" 
           autocomplete="off" 
           required 
-          placeholder="Search destination stop" 
-          class="glass-input w-full rounded-xl pl-10 pr-3 py-3 text-sm sm:text-base text-white placeholder-slate-500 font-medium"
+          placeholder="Search destination stop or landmark" 
+          class="w-full h-12 rounded-2xl bg-[#161E2F] border border-[#384358] pl-10 pr-3 text-sm text-[#F4EFEC] placeholder-[#7D869C] font-semibold focus:outline-none focus:border-[#FFA586] focus:ring-2 focus:ring-[#FFA586]/30 transition-all"
         >
-      </div>
     </div>
 
     <!-- Shared Stop Datalist -->

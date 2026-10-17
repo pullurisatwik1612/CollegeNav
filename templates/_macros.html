@@ -1,37 +1,33 @@
 {% macro fresh_badge(f) %}
-<span class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium transition-all {% if f.level=='ok' %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/25{% elif f.level=='warn' %}bg-amber-500/10 text-amber-300 border border-amber-500/25{% else %}bg-rose-500/10 text-rose-400 border border-rose-500/25{% endif %}">
+<span class="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-full font-bold transition-all {% if f.level=='ok' %}bg-[#34D399]/15 text-[#34D399] border border-[#34D399]/30{% elif f.level=='warn' %}bg-[#FBBF24]/15 text-[#FBBF24] border border-[#FBBF24]/30{% else %}bg-[#E5384B]/15 text-[#FF8A8A] border border-[#E5384B]/30{% endif %}">
   {% if f.level=='ok' %}
-    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+    <span class="w-1.5 h-1.5 rounded-full bg-[#34D399]"></span>
   {% elif f.level=='warn' %}
-    <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+    <span class="w-1.5 h-1.5 rounded-full bg-[#FBBF24]"></span>
   {% else %}
-    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+    <span class="w-1.5 h-1.5 rounded-full bg-[#E5384B]"></span>
   {% endif %}
   {{ f.text }}
 </span>
 {% endmacro %}
 
 {% macro alert_box(a) %}
-<div class="relative overflow-hidden text-sm rounded-xl p-3.5 border transition-all {% if a.kind=='cancelled' %}bg-rose-950/40 border-rose-500/30 text-rose-200{% elif a.kind=='delay' %}bg-amber-950/40 border-amber-500/30 text-amber-200{% elif a.kind=='diversion' %}bg-orange-950/40 border-orange-500/30 text-orange-200{% else %}bg-sky-950/40 border-sky-500/30 text-sky-200{% endif %}">
-  <div class="flex items-start gap-2.5">
-    <div class="text-base mt-0.5 shrink-0">
-      {% if a.kind=='cancelled' %}⛔
-      {% elif a.kind=='delay' %}⏱️
-      {% elif a.kind=='diversion' %}🔀
-      {% else %}📢{% endif %}
-    </div>
-    <div class="flex-1 min-w-0">
-      <div class="flex items-center justify-between gap-2 mb-1">
-        <span class="uppercase tracking-wider text-[11px] font-bold px-2 py-0.5 rounded-md {% if a.kind=='cancelled' %}bg-rose-500/20 text-rose-300{% elif a.kind=='delay' %}bg-amber-500/20 text-amber-300{% elif a.kind=='diversion' %}bg-orange-500/20 text-orange-300{% else %}bg-sky-500/20 text-sky-300{% endif %}">
-          {{ a.kind }}
-        </span>
-        <span class="text-xs text-slate-400 shrink-0">{{ a.age }}</span>
-      </div>
+<div class="card p-4 rounded-2xl border-l-4 space-y-1.5 transition-all {% if a.kind=='cancelled' %}border-l-[#E5384B] bg-gradient-to-r from-[#541A2E]/30 to-[#242F49]{% elif a.kind=='delay' %}border-l-[#FBBF24]{% elif a.kind=='diversion' %}border-l-[#FFA586]{% else %}border-l-[#34D399]{% endif %}">
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="text-[10px] font-extrabold uppercase tracking-wider {% if a.kind=='cancelled' %}text-[#FF8A8A]{% elif a.kind=='delay' %}text-[#FBBF24]{% elif a.kind=='diversion' %}text-[#FFA586]{% else %}text-[#34D399]{% endif %}">
+        {{ a.kind|upper }}
+      </span>
       {% if a.route_code %}
-      <div class="text-xs font-semibold text-slate-300 mb-0.5">Route {{ a.route_code }}</div>
+      <span class="px-2 py-0.5 rounded bg-[#161E2F] border border-[#384358] text-[10px] font-mono text-[#FFA586] font-bold">
+        {{ a.route_code }}
+      </span>
       {% endif %}
-      <div class="text-xs sm:text-sm text-slate-200 leading-relaxed">{{ a.message }}</div>
     </div>
+    <span class="text-[11px] text-[#AEB5C6] font-mono">{{ a.age }}</span>
   </div>
+  <p class="text-xs font-semibold text-[#F4EFEC] leading-relaxed">
+    {{ a.message }}
+  </p>
 </div>
 {% endmacro %}

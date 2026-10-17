@@ -1,179 +1,211 @@
 {% extends "base.html" %}
 
-{% block title %}Sign In • {{ app_name }}{% endblock %}
+{% block title %}Sign In • CollegeNav 2.0 • CVR College of Engineering{% endblock %}
 
 {% block content %}
-<div class="max-w-xl mx-auto py-2 space-y-6">
+<div class="relative min-h-[75vh] flex items-center justify-center py-6 px-4">
+  <!-- Soft crimson glow top-right background -->
+  <div class="pointer-events-none absolute -top-16 -right-16 w-80 h-80 rounded-full bg-[#B51A2B]/25 blur-3xl -z-10"></div>
 
-  <!-- Header Brand Banner -->
-  <div class="text-center space-y-1.5">
-    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-400 text-xs font-semibold tracking-wide uppercase">
-      Transit Access Portal
+  <div class="w-full max-w-[440px] mx-auto space-y-6">
+    <!-- 1. Header with Logo & College info -->
+    <div class="text-center space-y-3">
+      <div class="inline-flex items-center justify-center">
+        <img src="/static/logo.svg" alt="CollegeNav 2.0" class="w-[72px] h-[72px] drop-shadow-lg">
+      </div>
+      <div>
+        <h1 class="text-3xl font-extrabold tracking-tight font-display text-[#F4EFEC]">
+          College<span class="text-[#FFA586]">Nav</span> <span class="text-xs font-bold uppercase tracking-wider text-[#AEB5C6] px-1.5 py-0.5 rounded bg-[#242F49] border border-[#384358]">2.0</span>
+        </h1>
+        <p class="text-sm font-medium text-[#AEB5C6] mt-1">
+          CVR College of Engineering · sign in as
+        </p>
+      </div>
     </div>
-    <h1 class="text-2xl sm:text-3xl font-extrabold font-display text-white">
-      Sign in to <span class="text-amber-400">CollegeNav</span>
-    </h1>
-    <p class="text-xs sm:text-sm text-slate-400">
-      Access your personalized bus tracking, driver controls, or fleet management.
+
+    <!-- 2. Three large role buttons in a row (96px tall) -->
+    <div class="grid grid-cols-3 gap-3" role="tablist" aria-label="Sign in role">
+      <button type="button" onclick="setLoginRole('student')" id="role-btn-student"
+              class="h-[96px] rounded-2xl flex flex-col items-center justify-center gap-2 p-2 transition-all font-display border cursor-pointer {% if active_tab == 'student' %}bg-gradient-to-br from-[#B51A2B] to-[#541A2E] border-[#FFA586]/40 shadow-lg shadow-[#541A2E]/50 text-[#F4EFEC]{% else %}bg-[#242F49] border-[#384358] text-[#AEB5C6] hover:text-[#F4EFEC] hover:border-[#FFA586]/30{% endif %}">
+        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+          <path d="M6 12v5c0 2 3 3 6 3s6-1 6-3v-5"/>
+        </svg>
+        <span class="text-xs font-extrabold tracking-wide uppercase">Student</span>
+      </button>
+
+      <button type="button" onclick="setLoginRole('driver')" id="role-btn-driver"
+              class="h-[96px] rounded-2xl flex flex-col items-center justify-center gap-2 p-2 transition-all font-display border cursor-pointer {% if active_tab == 'driver' %}bg-gradient-to-br from-[#B51A2B] to-[#541A2E] border-[#FFA586]/40 shadow-lg shadow-[#541A2E]/50 text-[#F4EFEC]{% else %}bg-[#242F49] border-[#384358] text-[#AEB5C6] hover:text-[#F4EFEC] hover:border-[#FFA586]/30{% endif %}">
+        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 6v6M15 6v6M2 12h19M4 6h15a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/>
+          <circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>
+        </svg>
+        <span class="text-xs font-extrabold tracking-wide uppercase">Driver</span>
+      </button>
+
+      <button type="button" onclick="setLoginRole('admin')" id="role-btn-admin"
+              class="h-[96px] rounded-2xl flex flex-col items-center justify-center gap-2 p-2 transition-all font-display border cursor-pointer {% if active_tab == 'admin' %}bg-gradient-to-br from-[#B51A2B] to-[#541A2E] border-[#FFA586]/40 shadow-lg shadow-[#541A2E]/50 text-[#F4EFEC]{% else %}bg-[#242F49] border-[#384358] text-[#AEB5C6] hover:text-[#F4EFEC] hover:border-[#FFA586]/30{% endif %}">
+        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        <span class="text-xs font-extrabold tracking-wide uppercase">Admin</span>
+      </button>
+    </div>
+
+    <!-- 3. One Dynamic Form with 54px inputs and peach focus ring -->
+    <div class="card p-6 shadow-2xl space-y-5">
+      <form id="unified-login-form" method="post" action="/login" class="space-y-4">
+        <input type="hidden" name="role" id="login-role-input" value="{{ active_tab }}">
+
+        <!-- Dynamic ID Field -->
+        <div id="field-identifier-group">
+          <label id="label-identifier" for="input-identifier" class="label-heading block mb-2 text-[#AEB5C6]">
+            {% if active_tab == 'driver' %}Driver Employee ID{% elif active_tab == 'admin' %}Admin Username (optional){% else %}Student Roll Number{% endif %}
+          </label>
+          <div class="relative">
+            <input
+              type="text"
+              id="input-identifier"
+              name="identifier"
+              autocomplete="username"
+              placeholder="{% if active_tab == 'driver' %}e.g. DRV-01{% elif active_tab == 'admin' %}admin{% else %}e.g. 23CS101{% endif %}"
+              class="w-full h-[54px] rounded-2xl bg-[#161E2F] border-[1.5px] border-[#384358] px-4 text-[#F4EFEC] placeholder-[#7D869C] font-semibold text-sm focus:outline-none focus:border-[#FFA586] focus:ring-2 focus:ring-[#FFA586]/30 transition-all uppercase"
+            >
+          </div>
+        </div>
+
+        <!-- Password Field -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label id="label-password" for="input-password" class="label-heading text-[#AEB5C6]">
+              Password
+            </label>
+            <button type="button" onclick="showForgotPasswordInfo()" class="text-xs font-semibold text-[#FFA586] hover:underline">
+              Forgot password?
+            </button>
+          </div>
+          <div class="relative">
+            <input
+              type="password"
+              id="input-password"
+              name="password"
+              required
+              autocomplete="current-password"
+              placeholder="Enter password"
+              class="w-full h-[54px] rounded-2xl bg-[#161E2F] border-[1.5px] border-[#384358] px-4 text-[#F4EFEC] placeholder-[#7D869C] text-sm focus:outline-none focus:border-[#FFA586] focus:ring-2 focus:ring-[#FFA586]/30 transition-all"
+            >
+          </div>
+        </div>
+
+        <!-- 4. Primary Button (58px tall) -->
+        <button
+          type="submit"
+          id="btn-login-submit"
+          class="w-full h-[58px] rounded-2xl bg-[#FFA586] hover:bg-[#ffb59c] active:scale-[0.99] text-[#161E2F] font-extrabold text-base font-display tracking-tight flex items-center justify-center gap-2 shadow-lg shadow-[#FFA586]/20 transition-all cursor-pointer mt-2"
+        >
+          <span id="btn-login-text">Sign in as {% if active_tab == 'driver' %}Driver{% elif active_tab == 'admin' %}Admin{% else %}Student{% endif %}</span>
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </button>
+      </form>
+    </div>
+
+    <!-- Back to Public Search link -->
+    <div class="text-center">
+      <a href="/" class="text-xs font-semibold text-[#AEB5C6] hover:text-[#FFA586] transition-colors inline-flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        <span>Continue to public bus schedule &amp; route finder</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Modal for Forgot Password -->
+<div id="forgot-password-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div class="card p-6 max-w-sm w-full space-y-4 border border-[#384358] shadow-2xl">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-[#FFA586]/10 flex items-center justify-center text-[#FFA586]">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      </div>
+      <div>
+        <h3 class="font-extrabold text-[#F4EFEC]">Password Recovery</h3>
+        <p class="text-xs text-[#AEB5C6]">CVR College Transport Help Desk</p>
+      </div>
+    </div>
+    <p class="text-xs text-[#AEB5C6] leading-relaxed">
+      For password resets or login credentials, please contact the College Transport Desk in Person or via hotline:
     </p>
-  </div>
-
-
-
-  <!-- Role Tabs Selector -->
-  <div class="glass-panel rounded-2xl p-5 shadow-2xl">
-    <div class="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-slate-950/60 border border-white/10 mb-5">
-      <button type="button" onclick="switchTab('student')" id="tab-btn-student" class="py-2.5 px-3 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 {% if active_tab == 'student' %}bg-amber-400 text-slate-950 shadow{% else %}text-slate-400 hover:text-white{% endif %}">
-        <span>🎓</span>
-        <span>Student</span>
-      </button>
-
-      <button type="button" onclick="switchTab('driver')" id="tab-btn-driver" class="py-2.5 px-3 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 {% if active_tab == 'driver' %}bg-amber-400 text-slate-950 shadow{% else %}text-slate-400 hover:text-white{% endif %}">
-        <span>🚌</span>
-        <span>Driver</span>
-      </button>
-
-      <button type="button" onclick="switchTab('admin')" id="tab-btn-admin" class="py-2.5 px-3 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 {% if active_tab == 'admin' %}bg-amber-400 text-slate-950 shadow{% else %}text-slate-400 hover:text-white{% endif %}">
-        <span>🛡️</span>
-        <span>Admin</span>
-      </button>
+    <div class="p-3 rounded-xl bg-[#161E2F] border border-[#384358] text-xs font-mono text-[#FFA586] space-y-1">
+      <div>📞 Helpline: <a href="tel:+919848099999" class="underline">+91 98480 99999</a></div>
+      <div>📧 Email: transport@cvr.ac.in</div>
+      <div class="text-[11px] text-[#AEB5C6] pt-1">Default Passwords: <span class="text-[#F4EFEC]">stud123</span> (Students) / <span class="text-[#F4EFEC]">drv123</span> (Drivers) / <span class="text-[#F4EFEC]">admin123</span> (Admin)</div>
     </div>
-
-    <!-- TAB 1: Student Login Form -->
-    <form id="form-student" method="post" action="/login?tab=student" class="space-y-4 {% if active_tab != 'student' %}hidden{% endif %}">
-      <input type="hidden" name="role" value="student">
-      
-      <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-          Student Roll Number
-        </label>
-        <div class="relative">
-          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">🎓</span>
-          <input 
-            type="text" 
-            name="roll_no" 
-            required 
-            placeholder="Enter Roll Number (e.g. 23CS101)" 
-            class="glass-input w-full rounded-xl pl-10 pr-3 py-3 text-sm font-semibold text-white uppercase placeholder-slate-500"
-          >
-        </div>
-      </div>
-
-      <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-          Password
-        </label>
-        <div class="relative">
-          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">🔒</span>
-          <input 
-            type="password" 
-            name="password" 
-            required 
-            placeholder="Enter password" 
-            class="glass-input w-full rounded-xl pl-10 pr-3 py-3 text-sm text-white placeholder-slate-500"
-          >
-        </div>
-      </div>
-
-      <button type="submit" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 active:scale-[0.98] text-slate-950 font-extrabold rounded-xl py-3 px-4 shadow-lg shadow-amber-500/20 transition-all font-display tracking-tight text-sm flex items-center justify-center gap-2 btn-press">
-        <span>Sign In to Student Dashboard</span>
-        <span>➔</span>
-      </button>
-    </form>
-
-    <!-- TAB 2: Driver Login Form -->
-    <form id="form-driver" method="post" action="/login?tab=driver" class="space-y-4 {% if active_tab != 'driver' %}hidden{% endif %}">
-      <input type="hidden" name="role" value="driver">
-
-      <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-          Driver Employee ID
-        </label>
-        <div class="relative">
-          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">🚌</span>
-          <input 
-            type="text" 
-            name="emp_id" 
-            required 
-            placeholder="Enter Employee ID (e.g. DRV-01)" 
-            class="glass-input w-full rounded-xl pl-10 pr-3 py-3 text-sm font-semibold text-white uppercase placeholder-slate-500"
-          >
-        </div>
-      </div>
-
-      <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-          Password
-        </label>
-        <div class="relative">
-          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">🔒</span>
-          <input 
-            type="password" 
-            name="password" 
-            required 
-            placeholder="Enter password" 
-            class="glass-input w-full rounded-xl pl-10 pr-3 py-3 text-sm text-white placeholder-slate-500"
-          >
-        </div>
-      </div>
-
-      <button type="submit" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 active:scale-[0.98] text-slate-950 font-extrabold rounded-xl py-3 px-4 shadow-lg shadow-emerald-500/20 transition-all font-display tracking-tight text-sm flex items-center justify-center gap-2 btn-press">
-        <span>Sign In to Driver Duty Portal</span>
-        <span>➔</span>
-      </button>
-    </form>
-
-    <!-- TAB 3: Admin Login Form -->
-    <form id="form-admin" method="post" action="/login?tab=admin" class="space-y-4 {% if active_tab != 'admin' %}hidden{% endif %}">
-      <input type="hidden" name="role" value="admin">
-
-      <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-          Transport Administrator Password
-        </label>
-        <div class="relative">
-          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">🛡️</span>
-          <input 
-            type="password" 
-            name="password" 
-            required 
-            placeholder="Enter administrator password" 
-            class="glass-input w-full rounded-xl pl-10 pr-3 py-3 text-sm text-white placeholder-slate-500"
-          >
-        </div>
-      </div>
-
-      <button type="submit" class="w-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 active:scale-[0.98] text-white font-extrabold rounded-xl py-3 px-4 shadow-lg shadow-purple-500/20 transition-all font-display tracking-tight text-sm flex items-center justify-center gap-2 btn-press">
-        <span>Sign In as Fleet Administrator</span>
-        <span>➔</span>
-      </button>
-    </form>
+    <button type="button" onclick="hideForgotPasswordInfo()" class="w-full btn btn-secondary text-xs">
+      Close
+    </button>
   </div>
-
-  <!-- Guest Search Link -->
-  <div class="text-center">
-    <a href="/" class="text-xs text-slate-400 hover:text-amber-400 font-semibold transition-colors">
-      ← Continue as Guest to public route search & timetable
-    </a>
-  </div>
-
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-function switchTab(tab) {
-  ['student', 'driver', 'admin'].forEach(t => {
-    const f = document.getElementById('form-' + t);
-    const b = document.getElementById('tab-btn-' + t);
-    if (t === tab) {
-      f.classList.remove('hidden');
-      b.className = 'py-2.5 px-3 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 bg-amber-400 text-slate-950 shadow';
+const roleConfig = {
+  student: {
+    label: "Student Roll Number",
+    placeholder: "e.g. 23CS101",
+    btnText: "Sign in as Student",
+    requireId: true
+  },
+  driver: {
+    label: "Driver Employee ID",
+    placeholder: "e.g. DRV-01",
+    btnText: "Sign in as Driver",
+    requireId: true
+  },
+  admin: {
+    label: "Admin Username (optional)",
+    placeholder: "admin",
+    btnText: "Sign in as Admin",
+    requireId: false
+  }
+};
+
+function setLoginRole(role) {
+  document.getElementById('login-role-input').value = role;
+  
+  // Style role buttons
+  ['student', 'driver', 'admin'].forEach(r => {
+    const btn = document.getElementById('role-btn-' + r);
+    if (r === role) {
+      btn.className = "h-[96px] rounded-2xl flex flex-col items-center justify-center gap-2 p-2 transition-all font-display border cursor-pointer bg-gradient-to-br from-[#B51A2B] to-[#541A2E] border-[#FFA586]/40 shadow-lg shadow-[#541A2E]/50 text-[#F4EFEC]";
     } else {
-      f.classList.add('hidden');
-      b.className = 'py-2.5 px-3 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 text-slate-400 hover:text-white';
+      btn.className = "h-[96px] rounded-2xl flex flex-col items-center justify-center gap-2 p-2 transition-all font-display border cursor-pointer bg-[#242F49] border-[#384358] text-[#AEB5C6] hover:text-[#F4EFEC] hover:border-[#FFA586]/30";
     }
   });
+
+  const cfg = roleConfig[role] || roleConfig.student;
+  document.getElementById('label-identifier').textContent = cfg.label;
+  const input = document.getElementById('input-identifier');
+  input.placeholder = cfg.placeholder;
+  input.required = cfg.requireId;
+  document.getElementById('btn-login-text').textContent = cfg.btnText;
 }
+
+function showForgotPasswordInfo() {
+  document.getElementById('forgot-password-modal').classList.remove('hidden');
+}
+
+function hideForgotPasswordInfo() {
+  document.getElementById('forgot-password-modal').classList.add('hidden');
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+  const initial = document.getElementById('login-role-input').value || 'student';
+  setLoginRole(initial);
+});
 </script>
 {% endblock %}

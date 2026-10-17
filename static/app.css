@@ -1,229 +1,800 @@
-/* CollegeNav Design System - Night Transit Theme */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+/* ==========================================================================
+   CollegeNav 2.0 - Crimson Night Design System
+   Palette:
+     #161E2F  darkest navy (backgrounds, inputs, dark text on peach)
+     #242F49  navy (cards)
+     #384358  slate navy (secondary cards, borders, soft surfaces)
+     #FFA586  peach (primary accent, buttons, active tabs, brand 2.0, links)
+     #FF8F6B  peach gradient stop
+     #B51A2B  crimson (hero gradient start, danger)
+     #541A2E  wine (hero gradient end, shadows)
+     #F4EFEC  main text
+     #AEB5C6  muted text
+     #7D869C  faint text
+   ========================================================================== */
 
-:root, html.dark {
-  --bg-primary: #060913;
-  --bg-gradient: radial-gradient(circle at 50% 0%, #172142 0%, #0a0f20 50%, #05070f 100%);
-  --surface-card: rgba(15, 23, 42, 0.75);
-  --surface-card-hover: rgba(22, 33, 62, 0.9);
-  --border-glass: rgba(255, 255, 255, 0.08);
-  --border-glass-highlight: rgba(255, 255, 255, 0.16);
-  --accent-amber: #f59e0b;
-  --accent-amber-light: #fbbf24;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
-  --shadow-glow: 0 0 25px -5px rgba(245, 158, 11, 0.25);
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap');
+
+:root {
+  --bg-deep: #161E2F;
+  --bg-navy: #242F49;
+  --bg-slate: #384358;
+  --accent-peach: #FFA586;
+  --accent-peach-dark: #FF8F6B;
+  --accent-crimson: #B51A2B;
+  --accent-wine: #541A2E;
+  
+  --text-main: #F4EFEC;
+  --text-muted: #AEB5C6;
+  --text-faint: #7D869C;
+  
+  --status-green: #10B981;
+  --status-amber: #F59E0B;
+  --status-red: #EF4444;
+
+  --radius-card: 24px;
+  --radius-btn: 16px;
+  --radius-pill: 9999px;
 }
 
-html.theme-light {
-  --bg-primary: #f1f5f9;
-  --bg-gradient: radial-gradient(circle at 50% 0%, #e0e7ff 0%, #f1f5f9 60%, #e2e8f0 100%);
-  --surface-card: rgba(255, 255, 255, 0.9);
-  --surface-card-hover: rgba(255, 255, 255, 1);
-  --border-glass: rgba(15, 23, 42, 0.08);
-  --border-glass-highlight: rgba(15, 23, 42, 0.15);
-  --text-main: #0f172a;
-  --text-muted: #475569;
-  --text-dim: #64748b;
+/* Base & Background (Rule 1) */
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
-/* Force dark transit aesthetic for the hackathon demo */
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: #060913 !important;
-  background-image: radial-gradient(circle at 50% 0%, #16203d 0%, #090e1c 55%, #05070f 100%) !important;
-  background-attachment: fixed !important;
-  color: #f8fafc !important;
+html, body {
   min-height: 100vh;
   margin: 0;
+  padding: 0;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  color: var(--text-main) !important;
+  background-color: var(--bg-deep) !important;
+  background-image: 
+    radial-gradient(circle at 12% 0%, rgba(255, 165, 134, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 88% 0%, rgba(181, 26, 43, 0.22) 0%, transparent 45%),
+    linear-gradient(180deg, #161E2F 0%, #242F49 100%) !important;
+  background-attachment: fixed !important;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, h5, h6, .font-heading {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  letter-spacing: -0.02em;
+/* Typography (Rule 5) */
+h1, .h1 {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-size: 30px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+  line-height: 1.2 !important;
+  color: var(--text-main) !important;
 }
 
-/* Glassmorphism primitives */
-.glass-panel {
-  background: rgba(15, 23, 42, 0.72);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+h2, .h2 {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-size: 19px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.3 !important;
+  color: var(--text-main) !important;
 }
 
+h3, .h3 {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+  color: var(--text-main) !important;
+}
+
+p, span, label, input, select, textarea, button {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+
+.text-muted, .text-slate-400, .text-slate-500 {
+  color: var(--text-muted) !important;
+}
+
+.text-faint {
+  color: var(--text-faint) !important;
+}
+
+a {
+  color: var(--accent-peach);
+  text-decoration: none;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+a:hover {
+  color: #FFB59A;
+}
+
+/* Header (Rule 6) */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: rgba(22, 30, 47, 0.88) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-bottom: 1px solid rgba(56, 67, 88, 0.7) !important;
+}
+
+.brand-logo {
+  background: linear-gradient(135deg, #FFA586 0%, #FF8F6B 100%) !important;
+  color: #161E2F !important;
+  border-radius: 14px !important;
+  transform: rotate(-6deg) !important;
+  box-shadow: 0 0 20px 2px rgba(255, 165, 134, 0.45) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+.brand-logo:hover {
+  transform: rotate(0deg) scale(1.05) !important;
+  box-shadow: 0 0 26px 4px rgba(255, 165, 134, 0.6) !important;
+}
+
+.brand-version {
+  color: var(--accent-peach) !important;
+  font-weight: 800 !important;
+}
+
+/* Mobile &le;420px Rule (Rule 10) */
+@media (max-width: 420px) {
+  .college-sub {
+    display: none !important;
+  }
+  .brand-version {
+    display: none !important;
+  }
+  .role-chip .full-title {
+    display: none !important;
+  }
+  h1, .h1 {
+    font-size: 24px !important;
+  }
+  h2, .h2 {
+    font-size: 17px !important;
+  }
+}
+
+/* Cards & Glass Containers (Rule 3) */
+.glass,
+.glass-panel,
 .glass-card {
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  background: rgba(36, 47, 73, 0.85) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(56, 67, 88, 0.75) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: 0 10px 30px -8px rgba(10, 14, 24, 0.55), inset 0 1px 0 0 rgba(255, 255, 255, 0.05) !important;
+  color: var(--text-main);
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .glass-card:hover {
-  border-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.45);
+  border-color: rgba(255, 165, 134, 0.3) !important;
 }
 
-.glass-input {
-  background: rgba(10, 16, 30, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #f8fafc;
-  transition: all 0.2s ease;
+.glass.soft,
+.glass-card.soft {
+  background: rgba(56, 67, 88, 0.5) !important;
+  border: 1px solid rgba(56, 67, 88, 0.6) !important;
+  border-radius: var(--radius-card) !important;
 }
 
-.glass-input:focus {
-  background: rgba(12, 20, 38, 0.85);
-  border-color: #fbbf24;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2);
+/* Inset Recessed Surface */
+.inset {
+  background: rgba(22, 30, 47, 0.75) !important;
+  border: 1px solid rgba(56, 67, 88, 0.6) !important;
+  border-radius: 16px !important;
+  padding: 12px 16px;
 }
 
-.glass-nav {
-  background: rgba(10, 15, 29, 0.82);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.7);
+/* Override any stray bg-white cards across views to keep Crimson Night dark */
+main .bg-white:not(.btn-primary):not(.role-chip):not(.brand-logo) {
+  background: rgba(36, 47, 73, 0.85) !important;
+  color: var(--text-main) !important;
+  border-color: rgba(56, 67, 88, 0.75) !important;
 }
 
-/* Micro-interactions */
-.btn-press {
-  transition: transform 0.12s ease, filter 0.2s ease, box-shadow 0.2s ease;
+/* ==========================================================================
+   Hero Card (Rule 2)
+   The FIRST .glass card on every page becomes a bold Crimson Night gradient:
+   linear-gradient(135deg, #B51A2B, #541A2E), white text, soft peach radial glow
+   in top-right corner, and a deep wine shadow.
+   ========================================================================== */
+main .stack > .glass:first-child:not(.soft),
+main > .stack > .glass:first-child:not(.soft),
+main > .glass:first-child:not(.soft),
+main > .glass-panel:first-child:not(.soft),
+main > div > .glass-panel:first-child:not(.soft),
+.hero-card {
+  position: relative;
+  background: 
+    radial-gradient(circle at top right, rgba(255, 165, 134, 0.38) 0%, transparent 55%),
+    linear-gradient(135deg, #B51A2B 0%, #541A2E 100%) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 165, 134, 0.28) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: 0 16px 36px -6px rgba(84, 26, 46, 0.7), 0 0 24px rgba(181, 26, 43, 0.35) !important;
+  overflow: hidden;
 }
+
+/* Inside Hero Card: .kpi, .inset, .tabs become frosted white */
+main .stack > .glass:first-child:not(.soft) .kpi,
+main .stack > .glass:first-child:not(.soft) .inset,
+main .stack > .glass:first-child:not(.soft) .tabs,
+main > .glass:first-child:not(.soft) .kpi,
+main > .glass:first-child:not(.soft) .inset,
+main > .glass:first-child:not(.soft) .tabs,
+main > .glass-panel:first-child:not(.soft) .kpi,
+main > .glass-panel:first-child:not(.soft) .inset,
+main > .glass-panel:first-child:not(.soft) .tabs,
+main > div > .glass-panel:first-child:not(.soft) .kpi,
+main > div > .glass-panel:first-child:not(.soft) .inset,
+main > div > .glass-panel:first-child:not(.soft) .tabs,
+.hero-card .kpi,
+.hero-card .inset,
+.hero-card .tabs {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.24) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-radius: 16px !important;
+}
+
+/* Inside Hero Card: active tab & primary button are peach with #161E2F text */
+main .stack > .glass:first-child:not(.soft) .tab.active,
+main .stack > .glass:first-child:not(.soft) .tab.is-active,
+main .stack > .glass:first-child:not(.soft) .tabs .active,
+main > .glass:first-child:not(.soft) .tab.active,
+main > .glass:first-child:not(.soft) .tab.is-active,
+main > .glass:first-child:not(.soft) .tabs .active,
+main > .glass-panel:first-child:not(.soft) .tab.active,
+main > .glass-panel:first-child:not(.soft) .tabs .active,
+main > div > .glass-panel:first-child:not(.soft) .tab.active,
+main > div > .glass-panel:first-child:not(.soft) .tabs .active,
+.hero-card .tab.active,
+.hero-card .tabs .active,
+main .stack > .glass:first-child:not(.soft) .btn-primary,
+main > .glass:first-child:not(.soft) .btn-primary,
+main > .glass-panel:first-child:not(.soft) .btn-primary,
+main > div > .glass-panel:first-child:not(.soft) .btn-primary,
+.hero-card .btn-primary {
+  background: var(--accent-peach) !important;
+  color: #161E2F !important;
+  font-weight: 700 !important;
+  border: none !important;
+}
+
+/* Inside Hero Card: avatar is peach */
+main .stack > .glass:first-child:not(.soft) .avatar,
+main > .glass:first-child:not(.soft) .avatar,
+main > .glass-panel:first-child:not(.soft) .avatar,
+main > div > .glass-panel:first-child:not(.soft) .avatar,
+.hero-card .avatar {
+  background: var(--accent-peach) !important;
+  color: #161E2F !important;
+  font-weight: 800 !important;
+}
+
+/* ==========================================================================
+   Buttons (Rule 4 & Contrast Rule 11)
+   Font "Plus Jakarta Sans" weight 700, 16px radius, min 44px touch target.
+   ========================================================================== */
+.btn,
+.btn-press,
+button:not(#bell):not(#swap),
+.button {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-weight: 700 !important;
+  border-radius: var(--radius-btn) !important;
+  min-height: 44px !important;
+  padding: 10px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  touch-action: manipulation;
+}
+
+.btn:active,
 .btn-press:active {
   transform: scale(0.97);
 }
 
-/* Animations */
-@keyframes radarPing {
-  0% { transform: scale(1); opacity: 0.9; }
-  75%, 100% { transform: scale(2.4); opacity: 0; }
+/* Primary Button = Peach Gradient (#FFA586 → #FF8F6B) with #161E2F dark navy text */
+.btn-primary,
+button[type="submit"]:not(.btn-danger):not(.btn-ok),
+a.btn-primary {
+  background: linear-gradient(135deg, #FFA586 0%, #FF8F6B 100%) !important;
+  color: #161E2F !important;
+  font-weight: 800 !important;
+  border-radius: var(--radius-btn) !important;
+  box-shadow: 0 4px 16px 0 rgba(255, 165, 134, 0.35) !important;
 }
 
-.radar-ping {
-  animation: radarPing 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+.btn-primary:hover,
+button[type="submit"]:not(.btn-danger):not(.btn-ok):hover {
+  background: linear-gradient(135deg, #FFB59A 0%, #FFA07D 100%) !important;
+  box-shadow: 0 6px 22px 0 rgba(255, 165, 134, 0.45) !important;
+  transform: translateY(-1px);
 }
 
-@keyframes busGlide {
-  0% { transform: translateX(-15%); opacity: 0.8; }
-  50% { transform: translateX(15%); opacity: 1; }
-  100% { transform: translateX(-15%); opacity: 0.8; }
+/* Semantic Status Buttons */
+.btn-ok {
+  background: var(--status-green) !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  border-radius: var(--radius-btn) !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3) !important;
+}
+.btn-ok:hover {
+  background: #059669 !important;
 }
 
-.bus-glide {
-  animation: busGlide 8s ease-in-out infinite;
+.btn-danger {
+  background: var(--accent-crimson) !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  border-radius: var(--radius-btn) !important;
+  box-shadow: 0 4px 14px rgba(181, 26, 43, 0.35) !important;
+}
+.btn-danger:hover {
+  background: #991322 !important;
 }
 
-@keyframes subtleFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+/* Form Inputs */
+.glass-input,
+input[type="text"],
+input[type="password"],
+input[type="number"],
+input[type="search"],
+select,
+textarea {
+  background: #161E2F !important;
+  border: 1px solid rgba(56, 67, 88, 0.85) !important;
+  border-radius: var(--radius-btn) !important;
+  color: var(--text-main) !important;
+  font-size: 14px !important;
+  min-height: 44px !important;
+  padding: 10px 14px;
+  outline: none;
+  transition: all 0.2s ease;
 }
 
-.subtle-float {
-  animation: subtleFloat 4s ease-in-out infinite;
+.glass-input:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent-peach) !important;
+  box-shadow: 0 0 0 3px rgba(255, 165, 134, 0.22) !important;
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: rgba(10, 15, 29, 0.5);
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(251, 191, 36, 0.5);
+::placeholder {
+  color: var(--text-faint) !important;
 }
 
-/* Leaflet Dark Map overrides */
-.leaflet-container {
-  background: #090e1a !important;
-  font-family: inherit !important;
-}
-.leaflet-tile {
-  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7) !important;
-}
-.leaflet-popup-content-wrapper {
-  background: rgba(15, 23, 42, 0.92) !important;
-  backdrop-filter: blur(12px) !important;
-  color: #f8fafc !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  border-radius: 12px !important;
-  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.6) !important;
-}
-.leaflet-popup-tip {
-  background: rgba(15, 23, 42, 0.92) !important;
+/* ==========================================================================
+   Tabs & Subnav
+   ========================================================================== */
+.tabs, .subnav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(22, 30, 47, 0.6);
+  padding: 4px;
+  border-radius: var(--radius-btn);
+  border: 1px solid rgba(56, 67, 88, 0.6);
 }
 
-/* Route timeline dots & lines */
-.route-line-v {
+.tab,
+.tabs button,
+.subnav a {
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+  cursor: pointer;
+}
+
+.tab:hover,
+.subnav a:hover {
+  color: var(--text-main);
+}
+
+.tab.active,
+.tab.is-active,
+.tabs .active,
+.subnav .active,
+#tab-btn-student.bg-amber-400,
+#tab-btn-driver.bg-amber-400,
+#tab-btn-admin.bg-amber-400 {
+  background: var(--accent-peach) !important;
+  color: #161E2F !important;
+  box-shadow: 0 2px 10px rgba(255, 165, 134, 0.3) !important;
+}
+
+/* ==========================================================================
+   Bottom Nav (Rule 7)
+   Floating dark pill (rgba(22,30,47,.94)), active item = peach with navy text,
+   red notification badge.
+   ========================================================================== */
+.bottom-nav {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(22, 30, 47, 0.94) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(56, 67, 88, 0.85) !important;
+  border-radius: var(--radius-pill) !important;
+  box-shadow: 0 16px 36px -4px rgba(10, 14, 24, 0.75) !important;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 40;
+}
+
+.nav-tab {
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+}
+
+.nav-tab:hover {
+  color: var(--text-main);
+}
+
+.nav-tab.active,
+.nav-tab.is-active {
+  background: var(--accent-peach) !important;
+  color: #161E2F !important;
+  font-weight: 800 !important;
+}
+
+.nav-tab .badge,
+.nav-tab .badge-dot,
+.bottom-nav .badge-notification {
   position: absolute;
-  top: 14px;
-  bottom: 0;
-  left: 15px;
-  width: 2px;
-  background: linear-gradient(to bottom, #f59e0b, #3b82f6);
-  opacity: 0.4;
+  top: 6px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-crimson) !important;
+  box-shadow: 0 0 8px var(--accent-crimson) !important;
 }
 
-/* Dot utility */
-.dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+/* ==========================================================================
+   Admin "Live map" KPI link tile (Rule 8)
+   Peach gradient with navy text.
+   ========================================================================== */
+.kpi-live-map,
+a.kpi[href*="map"],
+a.kpi[href*="live_map"] {
+  background: linear-gradient(135deg, #FFA586 0%, #FF8F6B 100%) !important;
+  color: #161E2F !important;
+  font-weight: 800 !important;
+  border: none !important;
+  box-shadow: 0 4px 16px rgba(255, 165, 134, 0.35) !important;
+}
+.kpi-live-map *,
+a.kpi[href*="map"] * {
+  color: #161E2F !important;
+}
+
+/* General KPI component */
+.kpi {
+  background: rgba(36, 47, 73, 0.85);
+  border: 1px solid rgba(56, 67, 88, 0.7);
+  border-radius: 18px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+}
+.kpi .kpi-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text-main);
+  font-family: monospace;
+}
+.kpi .kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Chips & Badges
+   ========================================================================== */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.chip.emerald, .chip-emerald {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #34D399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+
+.chip.amber, .chip-amber {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #FBBF24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+}
+
+.chip.rose, .chip-rose {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #F87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+}
+
+.chip.sky, .chip-sky {
+  background: rgba(14, 165, 233, 0.15) !important;
+  color: #38BDF8 !important;
+  border: 1px solid rgba(14, 165, 233, 0.3) !important;
+}
+
+.chip.violet, .chip-violet {
+  background: rgba(139, 92, 246, 0.15) !important;
+  color: #A78BFA !important;
+  border: 1px solid rgba(139, 92, 246, 0.3) !important;
+}
+
+.role-chip {
+  min-height: 38px;
+}
+
+/* ==========================================================================
+   Banners & Alerts
+   ========================================================================== */
+.banner {
+  border-radius: 16px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid;
+}
+
+.banner.approaching, .banner-approaching {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #D1FAE5;
+}
+
+.banner.at_stop, .banner-at_stop {
+  background: rgba(255, 165, 134, 0.15);
+  border-color: rgba(255, 165, 134, 0.35);
+  color: #FFEDD5;
+}
+
+.banner.no_signal, .banner-no_signal {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #FEE2E2;
+}
+
+.alert-item {
+  border-radius: 16px;
+  padding: 12px 16px;
+  background: rgba(36, 47, 73, 0.7);
+  border: 1px solid rgba(56, 67, 88, 0.65);
+}
+
+/* ==========================================================================
+   Timeline, Stops, Seats & Passenger Rows
+   ========================================================================== */
+.timeline {
+  position: relative;
+  padding-left: 24px;
+}
+
+.stop-block {
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(22, 30, 47, 0.6);
+  border: 1px solid rgba(56, 67, 88, 0.5);
+  margin-bottom: 8px;
+}
+
+.stu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(22, 30, 47, 0.5);
+  border: 1px solid rgba(56, 67, 88, 0.4);
+  transition: background 0.15s ease;
+}
+.stu-row:hover {
+  background: rgba(36, 47, 73, 0.7);
+}
+
+.seat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 12px;
+  background: rgba(56, 67, 88, 0.5);
+  border: 1px solid rgba(56, 67, 88, 0.8);
+  color: var(--text-main);
+}
+.seat.allocated {
+  background: rgba(255, 165, 134, 0.2);
+  border-color: var(--accent-peach);
+  color: var(--accent-peach);
+}
+
+/* Avatar Component */
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-slate);
+  color: var(--text-main);
+  font-weight: 700;
   flex-shrink: 0;
 }
 
-/* SOS Pulse Animation */
-@keyframes sosPulseAnim {
-  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-  70% { box-shadow: 0 0 0 14px rgba(239, 68, 68, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+/* Occupancy Bar */
+.bar {
+  width: 100%;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: rgba(22, 30, 47, 0.8);
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  transition: width 0.3s ease;
 }
 
-.sos-pulse {
-  animation: sosPulseAnim 2s infinite;
+/* ==========================================================================
+   Tables & Data Presentation
+   Table headers styled with peach accent (Rule 3 Palette).
+   ========================================================================== */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius-card);
+  border: 1px solid rgba(56, 67, 88, 0.7);
 }
 
-/* Glow Utilities */
-.glow-amber {
-  box-shadow: 0 0 20px -3px rgba(245, 158, 11, 0.4);
-}
-.glow-emerald {
-  box-shadow: 0 0 20px -3px rgba(16, 185, 129, 0.4);
-}
-.glow-rose {
-  box-shadow: 0 0 20px -3px rgba(239, 68, 68, 0.4);
+table.t, table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
 }
 
-/* Metro Timeline Stepper Track */
-.metro-track {
-  position: relative;
-}
-.metro-step-item:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  top: 24px;
-  bottom: -12px;
-  left: 17px;
-  width: 2px;
-  background: rgba(255, 255, 255, 0.12);
-  z-index: 0;
-}
-.metro-step-item.is-passed:not(:last-child)::after {
-  background: rgba(16, 185, 129, 0.5);
-}
-.metro-step-item.is-current:not(:last-child)::after {
-  background: linear-gradient(to bottom, #f59e0b, rgba(255, 255, 255, 0.12));
+table.t thead th,
+table thead th {
+  color: var(--accent-peach) !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  background: rgba(22, 30, 47, 0.95) !important;
+  border-bottom: 1px solid rgba(56, 67, 88, 0.75) !important;
+  padding: 12px 16px !important;
+  text-align: left;
 }
 
+table.t tbody td,
+table tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(56, 67, 88, 0.45);
+  color: var(--text-main);
+}
+
+table tbody tr:hover {
+  background: rgba(56, 67, 88, 0.25) !important;
+}
+
+/* ==========================================================================
+   Leaflet Maps (Rule 9)
+   Keep dark map tile filter, route stops navy with peach end marker.
+   ========================================================================== */
+.map, #map {
+  background: var(--bg-deep) !important;
+  border-radius: var(--radius-card) !important;
+}
+
+.leaflet-container {
+  background: #161E2F !important;
+  font-family: inherit !important;
+}
+
+.leaflet-tile {
+  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7) !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: rgba(36, 47, 73, 0.95) !important;
+  backdrop-filter: blur(14px) !important;
+  color: #F4EFEC !important;
+  border: 1px solid rgba(56, 67, 88, 0.85) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 28px -4px rgba(10, 14, 24, 0.7) !important;
+}
+
+.leaflet-popup-tip {
+  background: rgba(36, 47, 73, 0.95) !important;
+}
+
+.bus-pin {
+  filter: drop-shadow(0 0 10px rgba(255, 165, 134, 0.6));
+}
+
+/* ==========================================================================
+   Toasts & Alerts Center
+   ========================================================================== */
+.toast {
+  background: rgba(22, 30, 47, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(56, 67, 88, 0.8) !important;
+  border-left: 4px solid var(--accent-peach) !important;
+  border-radius: 16px !important;
+  color: var(--text-main) !important;
+  box-shadow: 0 14px 34px -4px rgba(10, 14, 24, 0.75) !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(22, 30, 47, 0.6);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(56, 67, 88, 0.8);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-peach);
+}
